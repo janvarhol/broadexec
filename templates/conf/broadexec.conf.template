@@ -1,0 +1,99 @@
+#FIXME check if following variables exist and if can be deleted
+#BRDEXEC_DEFAULT_HOSTS_FOLDER=hosts
+#BRDEXEC_DEFAULT_TEAMCONFIG_HOSTS_FOLDER=hosts
+#BRDEXEC_DEFAULT_HOSTS_FILE_PATH default=none
+#BRDEXEC_DEFAULT_HOSTS_FILE_PATH=${BRDEXEC_DEFAULT_TEAMCONFIG_HOSTS_FOLDER}/customer-test
+#BRDEXEC_DEFAULT_SCRIPTS_FOLDER=
+#BRDEXEC_ERROR_BLACKLIST_FILE=${BRDEXEC_TEAM_CONFIG}/broadexec_error_blacklist.conf
+#BRDEXEC_REPORT_PATH=reports
+#BRDEXEC_LOG_PATH=logs
+#
+
+
+# This is example config file for brdexec script. More/less complete documentation to be added here.
+
+#############################
+###### USER and SHELL #######
+#############################
+
+### User to be used for brdexec
+BRDEXEC_USER=admin
+
+### SSH key for user
+BRDEXEC_USER_SSH_KEY=~/.ssh/id_rsa
+
+### Shell for calling the script ###
+### Following values are available:
+### sudo - call script using "sudo su - -c"
+### sh - call script using "sh -c"
+### Default: sudo
+BRDEXEC_RUNSHELL=sudo
+
+
+###################
+### TEAMCONFIG ####
+###################
+
+### default teamconfig folder inside teamconfig folder, e.g. team1, team2
+BRDEXEC_TEAM=team1
+BRDEXEC_DEFAULT_TEAMCONFIG_FOLDER=teamconfigs/${BRDEXEC_TEAM}
+
+###################
+###### PATHS ######
+###################
+
+### Path to hostfiles, each host should be on new line. 
+BRDEXEC_DEFAULT_HOSTS_FOLDER=hosts
+#default FOLDER where "hosts" file and custom hosts files are looked for
+#this FOLDER name is relative to broadexec root and BRDEXEC_DEFAULT_TEAMCONFIG_FOLDER
+#same lookup is done in ${BRDEXEC_DEFAULT_TEAMCONFIG_FOLDER}/${BRDEXEC_DEFAULT_HOSTS_FOLDER} if BRDEXEC_TEAM_CONFIG is set
+
+### Path to default hostfile to be used when no -h or -H parameters are used
+BRDEXEC_DEFAULT_HOSTS_FILE_PATH=hosts/hosts.default
+
+### path to file with error blacklist
+BRDEXEC_ERROR_BLACKLIST_FILE=$BRDEXEC_TEAMCONFIG_FOLDER/broadexec_error_blacklist.conf
+
+### path for reports
+BRDEXEC_REPORT_PATH=reports
+
+### path for logs
+BRDEXEC_LOG_PATH=logs
+
+##################
+#### TIMEOUTS ####
+##################
+
+### SSH connection timeout for brdexec
+BRDEXEC_SSH_CONNECTION_TIMEOUT=5
+
+### script run timeout default is 30 if missing
+BRDEXEC_SCRIPT_RUN_TIMEOUT=30
+
+### timeout for wait after kill command
+BRDEXEC_PROCESS_KILL_TIMEOUT=1
+
+### timeout for wait after CTRL+C command
+BRDEXEC_CTRLC_PROCESS_KILL_TIMEOUT=2
+
+##################
+#### SETTINGS ####
+##################
+
+### display errors in report default is yes if missing
+BRDEXEC_REPORT_DISPLAY_ERRORS=yes
+
+### make reports human readable if broadexec is run as human readable default is yes
+BRDEXEC_HUMAN_READABLE_REPORT=yes
+
+### cleanup report files running on broadexec start older than number of days default is disabled
+BRDEXEC_REPORT_CLEANUP_DAYS=120
+
+### set loglevel 0=no logging, 1=log just errors and issues
+### 2=log warnings and administrative messages
+### if not set, default is 1
+LOG_LEVEL=1
+
+### display delimiters for output/reports between hostnames and data gathered
+### default is space
+BRDEXEC_OUTPUT_HOSTNAME_DELIMITER=" "

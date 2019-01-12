@@ -1,0 +1,9 @@
+#!/bin/bash
+
+BRDEXEC_SUPPORTED_OS="sles"
+BRDEXEC_SUPPORTED_OS_VERSION_MIN[sles]=10.4
+BRDEXEC_SUPPORTED_OS_VERSION_MAX[sles]=11.3
+
+osrelease_check
+
+uptime

@@ -1,0 +1,210 @@
+.\" Manpage for broadexec.
+.\" Contact jan@varhol.sk for correcting errors and typos.
+.TH man 8 "13 Jul 2017" "0.8" "broadexec man page"
+.SH NAME
+  broadexec \- will run selected scripts on given hosts 
+
+.SH SYNOPSIS
+  broadexec [OPTIONS]
+
+.SH DESCRIPTION
+  Broadexec will execute selected script from scripts folder parallely on defined hosts.
+  Broadexec can be run without any options in this case it will fall into run scripts mode. Copying files and admin functions are available only via options.
+
+.SH OPTIONS
+.PP
+.I
+-h, --hostslist [HOSTS_FILE]
+.RS
+Only supported hosts files are located in folder specified by BRDEXEC_PREDEFINED_SCRIPTS_FOLDER variable in conf file. They can be 1 column lists with hostname or 2 column ones also with IP. When hosts file is with IP, IP will be used to connect throught ssh and hostname to display output and create reports.
+.RE
+.PP
+.I
+-H, --hosts [HOST1,HOST2,...]
+.RS
+Do not use host lists, but use provided hosts. Multiple -H parameters are supported.
+.RE
+.PP
+.I
+-f, --filter [PHRASE]
+.RS
+Optional for -l parameter. Set filter word specified in second column of hosts file for each customer, eg prod, test etc. If filters are divided by comma they are used for third,fourth etc column.
+.RE
+.PP
+.I
+-s, --script [SCRIPT_FILE]
+.RS
+Use any script to run. If it is specified without path, broadexec will search in folder speficied by BRDEXEC_PREDEFINED_SCRIPTS_FOLDER variable in conf file.
+.RE
+.PP
+.I
+-e, --human-readable
+.RS
+Use enhanced view in human readable format. Instead of 1 line per host output is displayed on multiple lines as it is provided from host with hostname on first line.
+.RE
+.PP
+.I
+-g, --grep [PHRASE]
+.RS
+Behave sort of like grep. Instead of displaying whole output, broadexec will display just the hostnames of hosts were outputs contain PHRASE provided as argument to -g option.
+.RE
+.PP
+.I
+-i, --case-insensitive
+.RS
+Only for use with -g parameter. When used case of PHRASE will be ignored by running grep -i.
+.RE
+.PP
+.I
+-r, --report-path [PATH]
+.RS
+Override default path for storing report files for this run. Default can be found in BRDEXEC_REPORT_PATH variable in conf file.
+.RE
+.PP
+.I
+-c, --copy-file [FILE]
+.RS
+Copy file to destination folder on selected hosts. Must be used with -d option.
+.RE
+.PP
+.I
+-d, --destination [PATH]
+.RS
+Used only with -c option. Sets destination on remote hosts where to copy file. Only subfolders of /tmp and /home are allowed.
+.RE
+.PP
+.I
+-a, --admin
+.RS
+Run admin mode with select menu to check logins, distribute ssh keys etc.
+.RE
+.PP
+.I
+-v, -vv, -vvv, --verbose
+.RS
+Display verbose output. -v for just most important messages, -vv for more info and -vvv for almost everything.
+.RE
+.PP
+.I
+-q, qq, --quiet
+.RS
+Quiet mode. -q display only main output, -qq display nothing, just write report.
+.RE
+.PP
+.I
+-h, --help, no parameter
+.RE
+This output
+.RE
+
+.SH CONFIGURATION
+Default configuration is stored in broadexec.conf file. Settings are provided as shell variables with values.
+.PP
+BRDEXEC_USER
+.RS
+Sets user on remote hosts with sudo rights. This value is required, can be omitted or overriden with "broadexec -u".
+.RE
+.PP
+BRDEXEC_USER_SSH_KEY
+.RS
+Tells broadexec which ssh key should be used when connecting, this value is optional.
+.RE
+.PP
+BRDEXEC_RUNSHELL
+.RS
+Sets shell for calling the script, it is optional. Possible values are sudo (default) or sh; with sudo script will be run with "sudo su - -c" with sh script will be called with "sh -c"
+.RE
+.PP
+BRDEXEC_HOSTS_FILE_PATH
+.RS
+Path to host files, optional, default is "hosts" folder in broadexec directory. Each host should be on new line. If there are more than one field in hosts file they are treated as filter words.
+.RE
+.PP
+BRDEXEC_PREDEFINED_SCRIPTS_FOLDER
+.RS
+Path to scripts, optional, default is "scripts" folder in broadexec directory. 
+.RE
+.PP
+BRDEXEC_ERROR_BLACKLIST_FILE
+.RS
+Path to error blacklist file, optional, default is "broadexec_error_blacklist.conf". Broadexec will ignore errors found in this file. Each error phrase should be on new line, no need for quotation marks.
+.RE
+.PP
+BRDEXEC_REPORT_PATH
+.RS
+Path to reports, optional, default is "reports" folder in broadexec directory. See also BRDEXEC_REPORT_DISPLAY_ERRORS and BRDEXEC_REPORT_CLEANUP_DAYS.
+.RE
+.PP
+BRDEXEC_SSH_CONNECTION_TIMEOUT
+.RS
+SSH connection timeout in seconds, passes this value to all ssh connections made by broadexec, optional, 
+.RE
+.PP
+BRDEXEC_SCRIPT_RUN_TIMEOUT
+.RS
+Timeout in seconds for broadexec, optional, default is 30 seconds. This timeout is counted from the time first ssh connection is executed and only for paralel runs. Does not affect file copy or admin functions.
+.RE
+.PP
+BRDEXEC_PROCESS_KILL_TIMEOUT
+.RS
+Timeout in seconds after killing ssh processes, optional.
+.RE
+.PP
+BRDEXEC_CTRLC_PROCESS_KILL_TIMEOUT
+.RS
+Timeout in seconds after pressing ctr+c during ssh execution, optional.
+.RE
+.PP
+BRDEXEC_REPORT_DISPLAY_ERRORS
+.RS
+Setting to display errors in report files, optional, default is yes.
+.RE
+.PP
+BRDEXEC_HUMAN_READABLE_REPORT
+.RS
+Setting to make human readable report files for broadexec runs with -h option, optional, default is yes.
+.RE
+.PP
+BRDEXEC_REPORT_CLEANUP_DAYS
+.RS
+Number of days to keep report files. Older reports are cleaned up on each broadexec run. Optional, default is disabled - keep reports indefinetely.
+.RE
+.PP
+LOG_LEVEL
+.RS
+Setting logging level, optional, default is 1. 0 = no logging, 1 = log just errors and issues, 2 = log also warnings and administrative messages
+.RE
+
+.SH EXAMPLES
+.PP
+Running broadexec with hosts file and script to run
+.RS
+.I
+broadexec -h hosts.customer.new -s check_connections.sh
+.RE
+.PP
+Same as before just with pilot filter
+.RS
+.I
+broadexec -h hosts.customer.new -f pilot -s check_connections.sh
+.RE
+.PP
+Running broadexec in admin mode
+.RS
+.I
+broadexec -a
+.RE
+.PP
+Distributing file with broadexec
+.RS
+.I
+broadexec -h hosts.customer.new -c /home/user/file -d /tmp
+.RE
+
+.SH FILES
+
+.SH BUGS
+  No known bugs.
+
+.SH AUTHOR
+
