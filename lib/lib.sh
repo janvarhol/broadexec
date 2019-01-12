@@ -1604,13 +1604,13 @@ brdexec_create_hosts_list_based_on_filter () { verbose -s "brdexec_create_hosts_
   fi
 }
 
-#210
-init () {
-
-  ### RUNID is unique id based on date and PID except for stats run invoked externally, then it is inherited
-  
-  RUNID="$(date '+%Y%m%d%H%M%S')_$$"
-}
+##210
+#init () {
+#
+#  ### RUNID is unique id based on date and PID except for stats run invoked externally, then it is inherited
+#  
+#  RUNID="$(date '+%Y%m%d%H%M%S')_$$"
+#}
 
 #211
 brdexec_create_temporary_hosts_list_based_on_filter () { verbose -s "brdexec_create_temporary_hosts_list_based_on_filter ${@}"
@@ -3102,3 +3102,142 @@ brdexec_create_config_file () {
   exit 1
 }
 
+#48
+brdexec_install () {
+
+  ### check for conflicting config files/folders that would prevent installation to continue
+  if [ -e conf ] && [ ! -d conf ]; then
+    echo "ERROR: There seems to be file instead of folder named conf in broadexec directory. Unable to continue with installation unless it is removed."
+    brdexec_interruption_ctrl_c
+  fi
+
+  if [ ! -d conf ]; then
+    mkdir conf
+  fi
+
+
+  echo -e "\n### Broadexec installation ###"
+
+  echo -e "\nIf you wish to skip or cancel installation, write to any of the prompts \"skip\" or \"cancel\""
+  echo "In case you do not want installation to start automatically, write \"abort\""
+  echo "To invoke installation again in the future just delete \"#already installed\" line from conf/broadexec.conf and run broadexec"
+  echo "If installation is cancelled, it will restart on next run with possibility to skip already configured items"
+
+  ### Username selection
+  echo -e "\n### Default username selection"
+
+  ### check if user already added in conf or not
+  if [ -z "${BRDEXEC_USER}" ]; then
+    echo -e "Enter default username used for connecting to hosts [$(logname)]: \c"
+  else
+    echo -e "Default username already in config: ${BRDEXEC_USER}. Do you wish to edit it anyways [skip] (yes/skip):"
+    read BRDEXEC_USER_FOUND
+    if [ "${BRDEXEC_USER_FOUND}" = "" 2>/dev/null ]; then
+      BRDEXEC_USER_FOUND=skip
+    fi
+  fi
+
+  case "${BRDEXEC_USER_FOUND}" in
+    skip)
+      BRDEXEC_INSTALL_USER=skip ;;
+    *)
+      echo -e "Enter default username used for connecting to hosts [$(logname)]: \c"
+      read BRDEXEC_INSTALL_USER ;;
+  esac
+
+  if [ "${BRDEXEC_INSTALL_USER}" = "" 2>/dev/null ]; then
+    BRDEXEC_INSTALL_USER="$(logname)"
+  fi
+
+  case "${BRDEXEC_INSTALL_USER}" in
+    skip)
+      echo "WARNING: Skipping User selection" ;;
+    cancel)
+      echo "WARNING: Cancelling installation"
+      brdexec_interruption_ctrl_c ;;
+    abort)
+      echo "#already installed" >> conf/broadexec.conf
+      echo "\"#already installed\" written into conf/broadexec.conf"
+      brdexec_interruption_ctrl_c ;;
+    *)
+      echo "OK: Default user selected"
+      echo "BRDEXEC_USER=${BRDEXEC_INSTALL_USER}" >> conf/broadexec.conf
+      echo "BRDEXEC_USER=${BRDEXEC_INSTALL_USER} written into conf/broadexec.conf"
+  esac
+
+  echo "TIP: You can always override this with \"-u\" parameter"
+
+  ### SSH key selection
+  echo -e "\n### SSH key selection"
+  echo "Broadexec is supposed to run scripts on many hosts so SSH keys are a must"
+  echo "NOTE: Your private SSH keys are not copied anywhere, broadexec just needs to know which one to use"
+
+  if [ -f ~/.ssh/id_rsa ]; then
+    BRDEXEX_INSTALL_PROPOSED_KEY="~/.ssh/id_rsa"
+  elif [ -f ~/.ssh/id_dsa ]; then
+    BRDEXEX_INSTALL_PROPOSED_KEY="~/.ssh/id_dsa"
+  fi
+
+  if [ ! -z "${BRDEXEC_USER_SSH_KEY}" ]; then
+#    echo -e "Enter location of your private SSH key\c"
+#    if [ ! -z "${BRDEXEX_INSTALL_PROPOSED_KEY}" ]; then
+#      echo -e " [${BRDEXEX_INSTALL_PROPOSED_KEY}]\c"
+#    fi
+#    echo -e ": \c"
+#    read BRDEXEC_INSTALL_USER_SSH_KEY
+#  else
+    echo -e "SSH key already in config: ${BRDEXEC_USER_SSH_KEY}. Do you wish to edit it anyways [skip] (yes/skip):"
+    read BRDEXEC_USER_SSH_KEY_FOUND
+    if [ "${BRDEXEC_USER_SSH_KEY_FOUND}" = "" 2>/dev/null ]; then
+      BRDEXEC_USER_SSH_KEY_FOUND=skip
+    fi
+  fi
+
+  case "${BRDEXEC_USER_SSH_KEY_FOUND}" in
+    skip)
+      BRDEXEC_INSTALL_USER_SSH_KEY=skip ;;
+    *)
+      echo -e "Enter location of your private SSH key\c"
+      if [ ! -z "${BRDEXEX_INSTALL_PROPOSED_KEY}" ]; then
+        echo -e " [${BRDEXEX_INSTALL_PROPOSED_KEY}]\c"
+      else
+	echo -e " [skip]\c"
+      fi
+      echo -e ": \c"
+      read BRDEXEC_INSTALL_USER_SSH_KEY ;;
+  esac
+
+  if [ "${BRDEXEC_INSTALL_USER_SSH_KEY}" = "" 2>/dev/null ]; then
+    if [ -z "${BRDEXEX_INSTALL_PROPOSED_KEY}" ]; then
+      BRDEXEC_INSTALL_USER_SSH_KEY="skip"
+    else
+      BRDEXEC_INSTALL_USER_SSH_KEY="${BRDEXEX_INSTALL_PROPOSED_KEY}"
+    fi
+  fi
+
+  case "${BRDEXEC_INSTALL_USER_SSH_KEY}" in
+    skip)
+      echo "WARNING: Skipping SSH key selection" ;;
+    cancel)
+      echo "WARNING: Cancelling installation"
+      exit 0 ;;
+    abort)
+      echo "#already installed" >> conf/broadexec.conf
+      echo "\"#already installed\" written into conf/broadexec.conf"
+      exit 0 ;;
+    *)
+      echo "OK: SSH Key selected"
+      echo "BRDEXEC_USER_SSH_KEY=${BRDEXEC_INSTALL_USER_SSH_KEY}" >> conf/broadexec.conf
+      echo "BRDEXEC_USER_SSH_KEY=${BRDEXEC_INSTALL_USER_SSH_KEY} written into conf/broadexec.conf"
+  esac
+
+  echo -e "\n### That is it! ###"
+  echo -e "\nThis is enough to get you started. To explore more configuration options you can check out config templates in templates/conf folder."
+
+  echo "#already installed" >> conf/broadexec.conf
+  echo -e "\n\"#already installed\" written into conf/broadexec.conf"
+  echo -e "\nBroadexec installation is now finished!"
+
+  ### we can get away without cleanup during installation, no tmp files written at this stage
+  exit 0
+}

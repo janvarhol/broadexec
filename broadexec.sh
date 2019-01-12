@@ -56,7 +56,8 @@ if [ "${?}" -ne 0 ]; then
 fi
 
 ### initialize shared variables from library
-init
+#init
+RUNID="$(date '+%Y%m%d%H%M%S')_$$"
 
 ### tell library which script is being run for default non script specific functions
 SCRIPT_NAME="$(basename ${0})"
@@ -69,14 +70,18 @@ brdexec_first_verbose_init ${@}
 
 #TODO firstrun message until auto-configuration is implemented
 ### Firstrun
-if [ -f ./firstrun ]; then
-  echo "--------------------------------------------------------------------------"
-  echo "This is your first run of broadexec, welcome and hope you will enjoy it ! "
-  echo "Please consider reading man and docs and configure your broadexec properly"
-  echo "--------------------------------------------------------------------------"
-  rm ./firstrun
-fi
+#if [ -f ./firstrun ]; then
+#  echo "--------------------------------------------------------------------------"
+#  echo "This is your first run of broadexec, welcome and hope you will enjoy it ! "
+#  echo "Please consider reading man and docs and configure your broadexec properly"
+#  echo "--------------------------------------------------------------------------"
+#  rm ./firstrun
+#fi
 
+# check installation
+if [ "$(grep -c "^#already installed" conf/broadexec.conf)" -eq 0 ]; then
+  brdexec_install
+fi
 
 ### Get main arguments for the script and process them also if some are missing fill in defaults
 brdexec_getopts_main ${@}
