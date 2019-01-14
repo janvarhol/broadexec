@@ -3125,21 +3125,31 @@ brdexec_install () {
     mkdir conf
   fi
 
+  echo "##########################################################################"
+  echo "######################### Broadexec installation #########################"
+  echo "##########################################################################"
 
-  echo -e "\n### Broadexec installation ###"
+  echo "--------------------------------------------------------------------------"
+  echo "This is your first run of broadexec, welcome and hope you will enjoy it ! "
+  echo "Please consider reading man and docs and configure your broadexec properly"
+  echo "--------------------------------------------------------------------------"
 
-  echo -e "\nIf you wish to skip or cancel installation, write to any of the prompts \"skip\" or \"cancel\""
-  echo "In case you do not want installation to start automatically, write \"abort\""
-  echo "To invoke installation again in the future just delete \"#already installed\" line from conf/broadexec.conf and run broadexec"
-  echo "If installation is cancelled, it will restart on next run with possibility to skip already configured items"
+  echo -e "\nIf you wish to skip or cancel installation, write to any of "
+  echo "the prompts \"skip\" or \"cancel\""
+  echo "In case you don\'t want installation to start automatically, write \"abort\""
+  echo "To invoke installation again just delete \"#already installed\""
+  echo "line from conf/broadexec.conf and run broadexec"
+  echo "If installation is cancelled, it will restart on next run with possibility"
+  echo "to skip already configured items"
 
   ### Username selection
-  echo -e "\n### Default username selection"
+  echo
+  echo "##########################################################################"
+  echo "### Default username selection ###########################################"
+  echo
 
   ### check if user already added in conf or not
-  if [ -z "${BRDEXEC_USER}" ]; then
-    echo -e "Enter default username used for connecting to hosts [$(logname)]: \c"
-  else
+  if [ !  -z "${BRDEXEC_USER}" ]; then
     echo -e "Default username already in config: ${BRDEXEC_USER}. Do you wish to edit it anyways [skip] (yes/skip):"
     read BRDEXEC_USER_FOUND
     if [ "${BRDEXEC_USER_FOUND}" = "" 2>/dev/null ]; then
@@ -3151,7 +3161,7 @@ brdexec_install () {
     skip)
       BRDEXEC_INSTALL_USER=skip ;;
     *)
-      echo -e "Enter default username used for connecting to hosts [$(logname)]: \c"
+      echo "Enter default username used for connecting to hosts [$(logname)]:"
       read BRDEXEC_INSTALL_USER ;;
   esac
 
@@ -3167,20 +3177,24 @@ brdexec_install () {
       brdexec_interruption_ctrl_c ;;
     abort)
       echo "#already installed" >> conf/broadexec.conf
-      echo "\"#already installed\" written into conf/broadexec.conf"
+      echo "\n   \"#already installed\" written into conf/broadexec.conf"
       brdexec_interruption_ctrl_c ;;
     *)
       echo "OK: Default user selected"
       echo "BRDEXEC_USER=${BRDEXEC_INSTALL_USER}" >> conf/broadexec.conf
-      echo "BRDEXEC_USER=${BRDEXEC_INSTALL_USER} written into conf/broadexec.conf"
+      echo "   BRDEXEC_USER=${BRDEXEC_INSTALL_USER} written into conf/broadexec.conf"
   esac
 
-  echo "TIP: You can always override this with \"-u\" parameter"
+  echo "### TIP: You can always override this with \"-u\" parameter"
 
   ### SSH key selection
-  echo -e "\n### SSH key selection"
+  echo
+  echo "##########################################################################"
+  echo "### SSH key selection ####################################################"
+  echo
   echo "Broadexec is supposed to run scripts on many hosts so SSH keys are a must"
-  echo "NOTE: Your private SSH keys are not copied anywhere, broadexec just needs to know which one to use"
+  echo "NOTE: Your private SSH keys are not copied anywhere, broadexec just needs"
+  echo "to know which one to use"
 
   if [ -f ~/.ssh/id_rsa ]; then
     BRDEXEX_INSTALL_PROPOSED_KEY="~/.ssh/id_rsa"
@@ -3196,7 +3210,7 @@ brdexec_install () {
 #    echo -e ": \c"
 #    read BRDEXEC_INSTALL_USER_SSH_KEY
 #  else
-    echo -e "SSH key already in config: ${BRDEXEC_USER_SSH_KEY}. Do you wish to edit it anyways [skip] (yes/skip):"
+    echo "SSH key already in config: ${BRDEXEC_USER_SSH_KEY}. Do you wish to edit it anyways [skip] (yes/skip):"
     read BRDEXEC_USER_SSH_KEY_FOUND
     if [ "${BRDEXEC_USER_SSH_KEY_FOUND}" = "" 2>/dev/null ]; then
       BRDEXEC_USER_SSH_KEY_FOUND=skip
@@ -3213,7 +3227,7 @@ brdexec_install () {
       else
 	echo -e " [skip]\c"
       fi
-      echo -e ": \c"
+      echo ": "
       read BRDEXEC_INSTALL_USER_SSH_KEY ;;
   esac
 
@@ -3233,7 +3247,7 @@ brdexec_install () {
       exit 0 ;;
     abort)
       echo "#already installed" >> conf/broadexec.conf
-      echo "\"#already installed\" written into conf/broadexec.conf"
+      echo "\"   #already installed\" written into conf/broadexec.conf"
       exit 0 ;;
     *)
       echo "OK: SSH Key selected"
@@ -3242,11 +3256,17 @@ brdexec_install () {
   esac
 
   echo -e "\n### That is it! ###"
-  echo -e "\nThis is enough to get you started. To explore more configuration options you can check out config templates in templates/conf folder."
+  echo -e "\nThis is enough to get you started. To explore more configuration"
+  echo "options you can check out config templates in templates/conf folder."
 
   echo "#already installed" >> conf/broadexec.conf
-  echo -e "\n\"#already installed\" written into conf/broadexec.conf"
-  echo -e "\nBroadexec installation is now finished!"
+  echo -e "\n   \"#already installed\" written into conf/broadexec.conf"
+  echo -e "\n\n### Broadexec installation is now finished! \n"
+
+  echo "Example:"
+  echo "Make sure you have ssh_key added (ssh-copy-id ${BRDEXEC_INSTALL_USER}@127.0.0.1)"
+  echo "Make sure you can execute \"sudo\" without password"
+  echo "\$ ./broadexec.sh -s scripts/uptime.sh -H 127.0.0.1"
 
   ### we can get away without cleanup during installation, no tmp files written at this stage
   exit 0
