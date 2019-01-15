@@ -1166,11 +1166,18 @@ brdexec_variables_init () { verbose -s "brdexec_variables_init ${@}"
     BRDEXEC_REPORT_DISPLAY_ERRORS="no"
   fi
   if [ "${BRDEXEC_REPORT_PATH}" = "" >/dev/null ]; then
-    BRDEXEC_REPORT_PATH="$(pwd)"
+    if [ -d reports ]; then
+      BRDEXEC_REPORT_PATH=reports
+    else
+      mkdir reports 2>/dev/null
+      if [ "${?}" -eq 0 ]; then
+	BRDEXEC_REPORT_PATH=reports
+      else
+	BRDEXEC_REPORT_PATH="$(pwd)"
+      fi
+    fi
   fi
-  if [ ! -d "${BRDEXEC_REPORT_PATH}" ]; then
-    mkdir -p "${BRDEXEC_REPORT_PATH}" || display_error 241 1
-  fi
+
   if [ ! -w "${BRDEXEC_REPORT_PATH}" ]; then
     display_error 242 1
   fi
