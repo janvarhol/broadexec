@@ -1140,8 +1140,8 @@ brdexec_variables_init () { verbose -s "brdexec_variables_init ${@}"
     BRDEXEC_RUNSHELL="sh -c"
   elif [ "${BRDEXEC_RUNSHELL}" = "sudo" 2>/dev/null ]; then
     BRDEXEC_RUNSHELL="sudo su - -c"
-  else #default
-    BRDEXEC_RUNSHELL="sudo su - -c"
+  else #default nosudo/sh
+    BRDEXEC_RUNSHELL="sh -c"
   fi
 
   ### setting defaut value for error blacklist
