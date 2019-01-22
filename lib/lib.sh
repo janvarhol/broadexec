@@ -986,7 +986,7 @@ brdexec_getopts_main () { verbose -s "brdexec_getopts_main ${@}"
               if [ ! -z "${BRDEXEC_VERSION}" ]; then
                 echo "Broadexec version: ${BRDEXEC_VERSION}"
               else
-                echo "ERROR: Unable to get Broadexec version."
+                >&2 echo "ERROR: Unable to get Broadexec version."
                 exit 1
               fi; exit 0 ;;
 
@@ -1004,7 +1004,7 @@ brdexec_getopts_main () { verbose -s "brdexec_getopts_main ${@}"
             *) ;;
           esac ;;
 
-        -*) echo "Unrecognized option ${1}"; brdexec_usage; break ;;
+        -*) >&2 echo "Unrecognized option ${1}"; brdexec_usage; break ;;
         *)
           break ;;
       esac
@@ -1762,7 +1762,7 @@ display_error () {
 
   ### check for empty input :)
   if [ "$#" -lt 1 ]; then
-    echo "ERROR: Error displaying error message."
+    >&2 echo "ERROR: Error displaying error message."
     return 1
   fi
 
@@ -1772,11 +1772,11 @@ display_error () {
 
   ### if broadexec library is used, display error from database
   if [ "${1}" -eq "${1}" 2>/dev/null ]; then
-    echo "ERROR [${1}] ${ERROR_MESSAGE[$1]}"
+    >&2 echo "ERROR [${1}] ${ERROR_MESSAGE[$1]}"
     log "ERROR [${1}] ${ERROR_MESSAGE[$1]}" 1
   ### display any other errors
   else
-    echo "ERROR ${1}"
+    >&2 echo "ERROR ${1}"
     log "${1}" 1
   fi
 
@@ -1806,7 +1806,7 @@ display_error () {
 #301
 brdexec_usage () { verbose -s "brdexec_usage  ${@}"
 
-  echo -e 'BROADEXEC HELP\n
+  >&2 echo -e 'BROADEXEC HELP\n
 When run without options, broadexec will display menu to choose hosts file, if present custom filters found in second column of customer hosts file and also script to run and execute it.
 Available options:
   -h, --hostslist [HOSTS_FILE]
@@ -1847,7 +1847,7 @@ verbose () {
 
   ### display this when wrong input
   if [ "$#" -lt 1 ]; then
-    echo "   VERBOSE: Error displaying verbose output."
+    >&2 echo "   VERBOSE: Error displaying verbose output."
     return 1
   fi
 
@@ -2566,7 +2566,7 @@ brdexec_admin_functions () { verbose -s "brdexec_admin_functions ${@}"
                 if [ "${?}" -ne 0 ]; then
                   echo ${BRDEXEC_CONFIG_CHECK_STRING} | grep -qi "^Host[[:space:]][[:space:]]*${BRDEXEC_SERVER_HOSTNAME}[[:space:]][[:space:]]*Hostname[[:space:]][[:space:]]*"
                   if [ "$?" -eq 0 ]; then
-                    echo "Wrong IP, expecting ${BRDEXEC_SERVER_IP} for ${BRDEXEC_SERVER_HOSTNAME}, you might want to fix your config manually"
+                    >&2 echo "Wrong IP, expecting ${BRDEXEC_SERVER_IP} for ${BRDEXEC_SERVER_HOSTNAME}, you might want to fix your config manually"
                   fi
                   echo "Updating ${BRDEXEC_SERVER_HOSTNAME}:${BRDEXEC_SERVER_IP}                              "
                   sed -i 's/^Host[[:space:]][[:space:]]*'${BRDEXEC_SERVER_HOSTNAME}'$/&\nHostname '${BRDEXEC_SERVER_IP}'/' ~/.ssh/config
@@ -2622,7 +2622,7 @@ EOF
 
   if [ "${1}" = "from_teamconfig" ] || [ "${1}" = "delete_particular" ]; then
     if [ "$(ls -1 ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/ 2>/dev/null | grep ".pub$" | wc -l)" -eq 0 ]; then
-      echo "No ssh keys found in teamconfig folder."
+      >&2 echo "No ssh keys found in teamconfig folder."
       exit 0
     fi
   else
@@ -2710,14 +2710,14 @@ EOF
       ### check if SSH keys were added successfully or not
       ssh -q -o StrictHostKeyChecking=yes -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_USER}@${BRDEXEC_SERVER} true > /dev/null 2>&1
       if [ "$?" -ne 0 ]; then
-        echo "There was problem adding ssh keys, check manually."
+        >&2 echo "There was problem adding ssh keys, check manually."
       else
         echo "SSH key for ${BRDEXEC_SERVER} added successfully."
       fi
 
       ### display info about unability to distribute teamconfig ssh keys in case standard admin user has issues
       if [ "${1}" = "from_teamconfig" ]; then
-        echo "Teamconfig ssh keys for this server were not added. First fix admin user access and run distribution again."
+        >&2 echo "Teamconfig ssh keys for this server were not added. First fix admin user access and run distribution again."
       fi
 
     ### adding ssh keys from teamfolder
@@ -2733,7 +2733,7 @@ EOF
             echo -e "===============================================\nAdding SSH key ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_TEAM_SSH_KEY} for ${BRDEXEC_SERVER}"
             echo $BRDEXEC_ADMPWD | $SSH_ASKPASS_SCRIPT ssh -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o PasswordAuthentication=yes ${BRDEXEC_USER}@${BRDEXEC_SERVER} "echo $(cat ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_TEAM_SSH_KEY}) >> ~/.ssh/authorized_keys"
             if [ "$?" -ne 0 ]; then
-              echo "There was problem adding ssh keys, check manually."
+              >&2 echo "There was problem adding ssh keys, check manually."
             else
               echo "SSH key for ${BRDEXEC_SERVER} added successfully."
             fi
@@ -2747,7 +2747,7 @@ EOF
           echo -e "===============================================\nDeleting SSH key ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_SSH_KEY_TO_BE_DELETED} from ${BRDEXEC_SERVER}"
           echo $BRDEXEC_ADMPWD | $SSH_ASKPASS_SCRIPT ssh -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o PasswordAuthentication=yes ${BRDEXEC_USER}@${BRDEXEC_SERVER} "BRDEXEC_DEL_TMP_KEY=\"\$(mktemp /tmp/broadexec.XXXXXXXXXX)\"; grep -v \"$(cat ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_SSH_KEY_TO_BE_DELETED} | awk '{print $2}')\" ~/.ssh/authorized_keys >> \${BRDEXEC_DEL_TMP_KEY}; mv \${BRDEXEC_DEL_TMP_KEY} ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys "
           if [ "$?" -ne 0 ]; then
-            echo "There was problem adding ssh keys, check manually."
+            >&2 echo "There was problem deleting ssh keys, check manually."
           else
             echo "SSH key for ${BRDEXEC_SERVER} removed successfully."
           fi
@@ -2766,7 +2766,7 @@ EOF
         ### check if password was set properly
         echo $BRDEXEC_ADMPWD | $SSH_ASKPASS_SCRIPT ssh -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" -o PubkeyAuthentication=no -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o PasswordAuthentication=yes ${BRDEXEC_USER}@${BRDEXEC_SERVER} true > /dev/null 2>&1
         if [ "$?" -eq 255 ]; then
-          echo "There was problem setting password for ${BRDEXEC_USER} on ${BRDEXEC_SERVER}"
+          >&2 echo "There was problem setting password for ${BRDEXEC_USER} on ${BRDEXEC_SERVER}"
         else
           echo "Password was successfully set."
         fi
@@ -2843,7 +2843,7 @@ EOF
         echo "OK: Password and expiration is set."
       fi
     else
-      echo -e "===========================================\nUnable to get chage info from ${BRDEXEC_SERVER}"
+      >&2 echo -e "===========================================\nUnable to get chage info from ${BRDEXEC_SERVER}"
     fi
   done
   rm ${SSH_ASKPASS_SCRIPT}
@@ -3080,7 +3080,7 @@ brdexec_create_config_file () {
       break
     done
   else
-    echo "Unable to fetch teamconfigs, probably wrong SSH tunnel settings."
+    >&2 echo "Unable to fetch teamconfigs, probably wrong SSH tunnel settings."
     exit 1
   fi 
 

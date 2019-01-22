@@ -26,12 +26,12 @@ BRDEXEC_VERSION="0.9.0"
 BRDEXEC_WORKING_DIRECTORY="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "${BRDEXEC_WORKING_DIRECTORY}"
 if [ "${?}" -ne 0 ]; then
-  echo "There was problem changing directory to ${BRDEXEC_WORKING_DIRECTORY}. Check and repair it manually."
+  >&2 echo "There was problem changing directory to ${BRDEXEC_WORKING_DIRECTORY}. Check and repair it manually."
   exit 1
 fi
 
 ### connect config file
-if [ "$(md5sum ./etc/config_file_valid_entries.db | awk '{print $1}')" = "a9ea8a5f651c790d84ffad180e08130b" ]; then
+if [ "$(md5sum ./etc/config_file_valid_entries.db 2>/dev/null | awk '{print $1}')" = "a9ea8a5f651c790d84ffad180e08130b" ]; then
   if [ -f "./conf/broadexec.conf" ]; then
     while read BRDEXEC_CONFIG_LINE; do
       BRDEXEC_CONFIG_LINE_ITEM="$(echo "${BRDEXEC_CONFIG_LINE}" | awk -F "=" '{print $1}')"
@@ -44,13 +44,13 @@ if [ "$(md5sum ./etc/config_file_valid_entries.db | awk '{print $1}')" = "a9ea8a
     done < ./conf/broadexec.conf
   fi
 else
-  echo "Unable to load configuration database, run broadexec install again to validate databases"
+  >&2 echo "Unable to load configuration database, run broadexec install again to validate databases"
   exit 1
 fi
 
 ### connect team config file
 if [ ! -z "${BRDEXEC_TEAM_CONFIG}" ] && [ -e "conf/${BRDEXEC_TEAM_CONFIG}" ] && [ -f "conf/${BRDEXEC_TEAM_CONFIG}/broadexec.conf" ]; then
-  if [ "$(md5sum ./etc/config_file_valid_entries.db | awk '{print $1}')" = "a9ea8a5f651c790d84ffad180e08130b" ]; then
+  if [ "$(md5sum ./etc/config_file_valid_entries.db 2>/dev/null | awk '{print $1}')" = "a9ea8a5f651c790d84ffad180e08130b" ]; then
     while read BRDEXEC_CONFIG_LINE; do
       BRDEXEC_CONFIG_LINE_ITEM="$(echo "${BRDEXEC_CONFIG_LINE}" | awk -F "=" '{print $1}')"
       if [ "$(grep -c "${BRDEXEC_CONFIG_LINE_ITEM}" ./etc/config_file_valid_entries.db)" -gt 0 ]; then
@@ -66,7 +66,7 @@ fi
 ### connect library
 . ./lib/lib.sh
 if [ "${?}" -ne 0 ]; then
-  echo "There was problem connecting to library lib.sh Check and install it manually."
+  >&2 echo "There was problem connecting to library lib.sh Check and install it manually."
   exit 1
 fi
 
