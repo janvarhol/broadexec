@@ -244,7 +244,10 @@ brdexec_defined_option_exec () { verbose -s "brdexec_defined_option_exec ${@}"
 
   ### get list of predefined scripts
   verbose 120 2
-  BRDEXEC_LIST_OF_TEAM_PREDEFINED_SCRIPTS="$(ls -1 ${BRDEXEC_DEFAULT_SCRIPTS_FOLDER}/${BRDEXEC_TEAM_CONFIG} 2>/dev/null | grep -v README | grep ".sh$" | tr '\n' ' ')"
+  if [ -d "${BRDEXEC_DEFAULT_SCRIPTS_FOLDER}/${BRDEXEC_TEAM_CONFIG}" ] && [ ! -z "${BRDEXEC_TEAM_CONFIG}" ]; then
+    BRDEXEC_LIST_OF_TEAM_PREDEFINED_SCRIPTS="$(ls -1 ${BRDEXEC_DEFAULT_SCRIPTS_FOLDER}/${BRDEXEC_TEAM_CONFIG} 2>/dev/null | grep -v README | grep ".sh$" | tr '\n' ' ')"
+  fi
+
   BRDEXEC_LIST_OF_CUSTOM_PREDEFINED_SCRIPTS="$(ls -1 ${BRDEXEC_DEFAULT_SCRIPTS_FOLDER} 2>/dev/null | grep -v README | grep ".sh$" | tr '\n' ' ')"
   ### create list with full relative paths
   for BRDEXEC_TEAM_PREDEFINED_SCRIPT in ${BRDEXEC_LIST_OF_TEAM_PREDEFINED_SCRIPTS}; do
@@ -591,7 +594,7 @@ brdexec_hosts () {
       verbose 220 2
       verbose 221 2
       ### get list of team hostsfiles
-      if [ -d "${BRDEXEC_DEFAULT_HOSTS_FOLDER}/${BRDEXEC_TEAM_CONFIG}" ]; then
+      if [ -d "${BRDEXEC_DEFAULT_HOSTS_FOLDER}/${BRDEXEC_TEAM_CONFIG}" ] && [ ! -z "${BRDEXEC_TEAM_CONFIG}" ]; then
         if [ "$(ls -1 ${BRDEXEC_DEFAULT_HOSTS_FOLDER}/${BRDEXEC_TEAM_CONFIG} 2>/dev/null | grep -v ^hosts$ | wc -l)" -gt 0 ]; then
           BRDEXEC_LIST_OF_TEAM_HOSTSFILES="$(ls -1 ${BRDEXEC_DEFAULT_HOSTS_FOLDER}/${BRDEXEC_TEAM_CONFIG} 2>/dev/null | grep -v ^hosts$ | tr '\n' ' ')"
         fi
