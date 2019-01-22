@@ -1136,9 +1136,11 @@ brdexec_variables_init () { verbose -s "brdexec_variables_init ${@}"
   fi
 
   ### check runshell settings
-  if [ "${BRDEXEC_RUNSHELL}" = "sh" 2>/dev/null ]; then
+  if [ "${BRDEXEC_RUNSHELL}" = "sh" 2>/dev/null ] || [ "${BRDEXEC_RUNSHELL}" = "nosudo" 2>/dev/null ]; then
     BRDEXEC_RUNSHELL="sh -c"
   elif [ "${BRDEXEC_RUNSHELL}" = "sudo" 2>/dev/null ]; then
+    BRDEXEC_RUNSHELL="sudo sh -c"
+  elif [ "${BRDEXEC_RUNSHELL}" = "sudosu" 2>/dev/null ]; then
     BRDEXEC_RUNSHELL="sudo su - -c"
   else #default nosudo/sh
     BRDEXEC_RUNSHELL="sh -c"
