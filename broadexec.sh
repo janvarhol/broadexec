@@ -97,6 +97,8 @@ fi
 ### Get main arguments for the script and process them also if some are missing fill in defaults
 brdexec_getopts_main ${@}
 
+brdexec_check_for_conflicting_inputs
+
 #TODO make this work so it can be enabled
 #brdexec_check_updates
 brdexec_variables_init ${@}

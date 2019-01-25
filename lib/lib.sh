@@ -119,6 +119,8 @@
 #
 # 213 H brdexec_verify_script_signature
 #
+# 214 H brdexec_check_for_conflicting_inputs
+#
 ##################################################
 ###### Error/Output/Format/Export functions ######
 ##################################################
@@ -1018,48 +1020,6 @@ brdexec_getopts_main () { verbose -s "brdexec_getopts_main ${@}"
       BRDEXEC_VERY_QUIET_MODE="yes"
     fi
   done
-
-  ### Check for conflicting inputs
-  verbose 217 2
-
-  ### in case you have filter but no hostslist
-  if [ ! -z "${BRDEXEC_SERVERLIST_FILTER}" ] && [ -z "${BRDEXEC_SERVERLIST_CHOSEN}" ]; then
-    if [ -z "${BRDEXEC_DEFAULT_HOSTS_FILE_PATH}" ] || [ ! -f "${BRDEXEC_DEFAULT_HOSTS_FILE_PATH}" ]; then
-      display_error "211" 1
-    fi
-  fi
-
-  ### check for conflicts of selecting hostlists and manual selection via -H
-  if [ ! -z "${BRDEXEC_HOSTS}" ] && [ ! -z "${BRDEXEC_SERVERLIST_CHOSEN}" ]; then
-    display_error "2101" 1
-  fi
-
-  ### check conflicts for human readable and grep display
-  if [ ! -z "${BRDEXEC_HUMAN_READABLE_OUTPUT}" ] && [ ! -z "${BRDEXEC_GREP_DISPLAY_ONLY_SERVERS}" ]; then
-    display_error "210" 1
-  fi
-
-  ### check for -i parameter without -g parameter
-  if [ ! -z "${BRDEXEC_GREP_DISPLAY_ONLY_SERVERS_INSENSITIVE}" ] && [ -z "${BRDEXEC_GREP_DISPLAY_ONLY_SERVERS}" ]; then
-    display_error "210" 1
-  fi
-  verbose 219 2
-
-  ### check for conflicts with file copy operation
-  if [ ! -z "${BRDEXEC_COPY_DESTINATION}" ] && [ -z "${BRDEXEC_COPY_FILE}" ]; then
-    display_error "218" 1
-  fi
-  if [ ! -z "${BRDEXEC_COPY_FILE}" ] && [ ! -z "${BRDEXEC_ADMIN_FUNCTIONS}" ]; then
-    display_error "219" 1
-  fi
-  if [ ! -z "${BRDEXEC_COPY_FILE}" ] && [ ! -z "${BRDEXEC_INPUT_SCRIPT_PATH}" ]; then
-    display_error "2100" 1
-  fi
-
-  ### Check for conflicts with batch mode
-  if [ ! -z "${BRDEXEC_BATCH_MODE}" ] && [ ! -z "${BRDEXEC_ADMIN_FUNCTIONS}" ]; then
-    display_error "2102" 1
-  fi
 }
 
 #204
@@ -1742,6 +1702,51 @@ brdexec_verify_script_signature () {
     else
       display_error "114" 1
     fi
+}
+
+#214
+brdexec_check_for_conflicting_inputs () {
+  
+  verbose 217 2
+
+  ### in case you have filter but no hostslist
+  if [ ! -z "${BRDEXEC_SERVERLIST_FILTER}" ] && [ -z "${BRDEXEC_SERVERLIST_CHOSEN}" ]; then
+    if [ -z "${BRDEXEC_DEFAULT_HOSTS_FILE_PATH}" ] || [ ! -f "${BRDEXEC_DEFAULT_HOSTS_FILE_PATH}" ]; then
+      display_error "211" 1
+    fi
+  fi
+
+  ### check for conflicts of selecting hostlists and manual selection via -H
+  if [ ! -z "${BRDEXEC_HOSTS}" ] && [ ! -z "${BRDEXEC_SERVERLIST_CHOSEN}" ]; then
+    display_error "2101" 1
+  fi
+
+  ### check conflicts for human readable and grep display
+  if [ ! -z "${BRDEXEC_HUMAN_READABLE_OUTPUT}" ] && [ ! -z "${BRDEXEC_GREP_DISPLAY_ONLY_SERVERS}" ]; then
+    display_error "210" 1
+  fi
+
+  ### check for -i parameter without -g parameter
+  if [ ! -z "${BRDEXEC_GREP_DISPLAY_ONLY_SERVERS_INSENSITIVE}" ] && [ -z "${BRDEXEC_GREP_DISPLAY_ONLY_SERVERS}" ]; then
+    display_error "210" 1
+  fi
+  verbose 219 2
+
+  ### check for conflicts with file copy operation
+  if [ ! -z "${BRDEXEC_COPY_DESTINATION}" ] && [ -z "${BRDEXEC_COPY_FILE}" ]; then
+    display_error "218" 1
+  fi
+  if [ ! -z "${BRDEXEC_COPY_FILE}" ] && [ ! -z "${BRDEXEC_ADMIN_FUNCTIONS}" ]; then
+    display_error "219" 1
+  fi
+  if [ ! -z "${BRDEXEC_COPY_FILE}" ] && [ ! -z "${BRDEXEC_INPUT_SCRIPT_PATH}" ]; then
+    display_error "2100" 1
+  fi
+
+  ### Check for conflicts with batch mode
+  if [ ! -z "${BRDEXEC_BATCH_MODE}" ] && [ ! -z "${BRDEXEC_ADMIN_FUNCTIONS}" ]; then
+    display_error "2102" 1
+  fi
 }
 
 #300
