@@ -72,6 +72,7 @@ fi
 
 ### set broadexec runid
 RUNID="$(date '+%Y%m%d%H%M%S')_$$"
+BRDEXEC_RUNID="brdexec_${RUNID}"
 
 ### tell library which script is being run for default non script specific functions
 SCRIPT_NAME="$(basename ${0})"

@@ -1159,9 +1159,6 @@ brdexec_variables_init () { verbose -s "brdexec_variables_init ${@}"
     BRDEXEC_OUTPUT_HOSTNAME_DELIMITER=" "
   fi
 
-  ### adapt runid for broadexec purposes
-  BRDEXEC_RUNID="brdexec_${RUNID}"
-
   ### setting reporting variables
   if [ "${BRDEXEC_REPORT_DISPLAY_ERRORS}" = "" 2>/dev/null ] || [ "${BRDEXEC_REPORT_DISPLAY_ERRORS}" != "no" 2>/dev/null ]; then
     BRDEXEC_REPORT_DISPLAY_ERRORS="yes"
