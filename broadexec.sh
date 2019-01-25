@@ -70,8 +70,8 @@ if [ "${?}" -ne 0 ]; then
   exit 1
 fi
 
-### initialize shared variables from library
-init
+### set broadexec runid
+RUNID="$(date '+%Y%m%d%H%M%S')_$$"
 
 ### tell library which script is being run for default non script specific functions
 SCRIPT_NAME="$(basename ${0})"

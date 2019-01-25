@@ -112,8 +112,6 @@
 # 209 H (11) (41) brdexec_create_hosts_list_based_on_filter - separate function to recreate hostslist 
 #      to be used based on filter options entered
 #
-# 210 H init - initialize all shared non script specific variables and settings for any script using library
-#
 # 211 H brdexec_create_temporary_hosts_list_based_on_filter - due to complicated nature of filter selection this
 #       was created as reusable code for hosts fiters due to multilevel multi instance filtering capabilities
 #
@@ -436,7 +434,7 @@ EOF
     ### final check
     ps -p ${BRDEXEC_SSH_KILLED_PID_TO_WAIT} >/dev/null
     if [ "${?}" -eq 0 ]; then
-      brdexec_display_output "SSH process with PID ${BRDEXEC_SSH_KILLED_PID_TO_WAIT} is unable to be stopped. Check manually." 1
+      brdexec_display_output "SSH process with PID ${BRDEXEC_SSH_KILLED_PID_TO_WAIT} is unable to be stopped. Check manually." 1 error
     fi
 
   fi
@@ -523,7 +521,7 @@ brdexec_copy_file () { verbose -s "brdexec_copy_file ${@}"
 
   ### display little help in case menu selection was used
   if [ ! -z "${BRDEXEC_SELECTED_PARAMETERS_INFO}" ]; then
-    brdexec_display_output "To skip menu selection you can run broadexec next time with following parameters: \n./broadexec.sh ${BRDEXEC_PARAMETERS_BACKUP}${BRDEXEC_SELECTED_PARAMETERS_INFO}\n" 255
+    brdexec_display_output "To skip menu selection you can run broadexec next time with following parameters: \n./broadexec.sh ${BRDEXEC_PARAMETERS_BACKUP}${BRDEXEC_SELECTED_PARAMETERS_INFO}\n" 255 error
   fi
 
   ### check input file
@@ -1626,14 +1624,6 @@ brdexec_create_hosts_list_based_on_filter () { verbose -s "brdexec_create_hosts_
   fi
 }
 
-#210
-init () {
-
-  ### RUNID is unique id based on date and PID except for stats run invoked externally, then it is inherited
-  
-  RUNID="$(date '+%Y%m%d%H%M%S')_$$"
-}
-
 #211
 brdexec_create_temporary_hosts_list_based_on_filter () { verbose -s "brdexec_create_temporary_hosts_list_based_on_filter ${@}"
 
@@ -1766,7 +1756,7 @@ display_error () {
     return 1
   fi
 
-  ### load errors library & setting defaults
+  ### reload errors library & setting defaults
   [ -f "./etc/display_error.db" ] && . ./etc/display_error.db
   ERROR_CODE=1
 
@@ -2061,8 +2051,14 @@ brdexec_repair_missing_known_hosts () { verbose -s "brdexec_repair_missing_known
 #306
 brdexec_display_output () {
 
+  ### set redirection to STDERR
+  if [ "${2}" = "error" 2>/dev/null ] || [ "${3}" = "error" ] || [ "${4}" = "error" ]; then
+    local BRDEXEC_DISPLAY_OUTPUT_TO_STDERR
+    BRDEXEC_DISPLAY_OUTPUT_TO_STDERR=true
+  fi
+
   ### manage oneliner when -e option is not present
-  if [ "${2}" = "main" ]; then
+  if [ "${2}" = "main" 2>/dev/null ]; then
 
     ### display main output
     if [ -z "${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY}" ]; then
@@ -2127,7 +2123,11 @@ brdexec_display_output () {
 
     ### do not display anything else than main output when -q option is present
     if [ "${BRDEXEC_QUIET_MODE}" != "yes" ]; then
-      echo -e "${1}"
+      if [ "${BRDEXEC_DISPLAY_OUTPUT_TO_STDERR}" = "true" 2>/dev/null ]; then
+        (>&2 echo -e "${1}")
+      else
+        echo -e "${1}"
+      fi
     fi
   fi
 
@@ -2143,6 +2143,10 @@ brdexec_display_output () {
     if [ "${2}" != 255 ]; then
       log "${1}" ${2}
     fi
+  fi
+
+  if [ ! -z "${BRDEXEC_DISPLAY_OUTPUT_TO_STDERR}" ]; then
+    unset BRDEXEC_DISPLAY_OUTPUT_TO_STDERR
   fi
 }
 
