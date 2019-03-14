@@ -239,9 +239,6 @@ brdexec_execute_temp_scripts () { verbose -s "brdexec_execute_temp_scripts ${@}"
 #12
 brdexec_defined_option_exec () { verbose -s "brdexec_defined_option_exec ${@}"
 
-  ### setting prompt
-  PS3='Select script to run #> '
-
   ### get list of predefined scripts
   verbose 120 2
   if [ -d "${BRDEXEC_DEFAULT_SCRIPTS_FOLDER}/${BRDEXEC_TEAM_CONFIG}" ] && [ ! -z "${BRDEXEC_TEAM_CONFIG}" ]; then
@@ -272,20 +269,34 @@ brdexec_defined_option_exec () { verbose -s "brdexec_defined_option_exec ${@}"
       fi
       ### Display menu to choose from scripts
       verbose 124 2
-      select BRDEXEC_PREDEFINED_SCRIPTS_ITEM in ${BRDEXEC_LIST_OF_PREDEFINED_SCRIPTS}; do
-        ### Check if correct input was provided
-        verbose 125 2
-        if [ "$(echo "${BRDEXEC_LIST_OF_PREDEFINED_SCRIPTS}" | wc -w)" -lt "${REPLY}" ] 2>/dev/null; then
-          display_error "120" 1
-        fi
-        if [ "${REPLY}" -lt 1 ]; then
-          display_error "120" 1
-        fi
-        if ! [ "${REPLY}" -eq "${REPLY}" ] 2>/dev/null; then
-          display_error "120" 1
-        fi
-        break
+
+      BRDEXEC_SCRIPT_SELECT_ID=0
+      echo "Available scripts:"
+      for BRDEXEC_PREDEFINED_SCRIPTS_ITEM in ${BRDEXEC_LIST_OF_PREDEFINED_SCRIPTS}; do
+	((BRDEXEC_SCRIPT_SELECT_ID++))
+        echo "${BRDEXEC_SCRIPT_SELECT_ID}) ${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
       done
+
+      ### setting prompt
+      echo
+      echo -n 'Select script to run #> '
+
+      unset BRDEXEC_PREDEFINED_SCRIPTS_ITEM
+      read BRDEXEC_PREDEFINED_SCRIPTS_ITEM
+      if [ "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}" = "" 2>/dev/null ]; then
+        display_error "120" 1
+      elif ! [ "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}" -eq "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}" 2>/dev/null ]; then
+        display_error "120" 1
+      elif [ "$(echo "${BRDEXEC_LIST_OF_PREDEFINED_SCRIPTS}" | wc -w)" -lt "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}" 2>/dev/null ]; then
+        display_error "120" 1
+      elif [ "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}" -lt 1 2>/dev/null ]; then
+        display_error "120" 1
+      else
+        BRDEXEC_SCRIPT_SELECT_ID="${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
+        BRDEXEC_PREDEFINED_SCRIPTS_ITEM="$(echo "${BRDEXEC_LIST_OF_PREDEFINED_SCRIPTS}" | awk -v field="$BRDEXEC_PREDEFINED_SCRIPTS_ITEM" '{print $field}')"
+        brdexec_display_output "${BRDEXEC_SCRIPT_SELECT_ID}) ${BRDEXEC_PREDEFINED_SCRIPTS_ITEM} was selected\n" 255
+      fi
+
       brdexec_display_output "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM} was selected.\n" 255
 
       ### add selection to info line about selected parameters
