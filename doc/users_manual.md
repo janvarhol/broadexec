@@ -11,7 +11,7 @@ Just run it. Without any parameters, broadexec will guide you through menu to se
 ## Formatting output
 
 Default view of broadexec output may depend on settings in scripts or of your teamconfigs folder, but you can alter it to your needs. 
--e (enhanced, human readable) parameter stops default display of all output from host in one line.\\
+-e (enhanced, human readable) parameter stops default display of all output from host in one line.
 -g behaves like grep, only displays hostnames with phrase in script output; -i behaves like grep -i with case insensitivity
 
 In case there are some unwanted lines or annoying messages in output, they can be blacklisted via blacklist file in your teamconfig conf folder. 
@@ -20,26 +20,30 @@ There are more ways to change output in template config file in templates/conf f
 
 ## Hostfile filters
 
-You can specify filters in columns of hostfiles (or use provided filtering) for better hostfiles customization. You don't need to track as many changes in more than one file. You can use multilevel filtering or combine more filters at once. For example if you use filter -f prod for this hostfile<code>host1 prod
-host2 test pilot
-host3 test
-host4 prod</code>broadexec will execute script only on host1 and host4.
+You can specify filters in columns of hostfiles (or use provided filtering) for better hostfiles customization. You don't need to track as many changes in more than one file. You can use multilevel filtering or combine more filters at once. For example if you use filter -f prod for this hostfile
+   host1 prod
+   host2 test pilot
+   host3 test
+   host4 prod
+broadexec will execute script only on host1 and host4.
 
 Example of multilevel filtering would be using pilot testing -f test.pilot on hostlist above. Broadexec will execute script only on host2. It will first filter every line where there is test in first filter column and then searches for all lines where there is pilot in second filter column. 
 
-Here is another example using more customers in one hostfile. Using multiple filters ./broadexec -f customer1.test.pilot -f customer2.test.pilot on following hostlist<code>
-host1 customer1 prod
-host2 customer1 test pilot
-host3 customer1 test
-host4 customer2 test
-host5 customer2 test pilot
-host6 customer2 prod</code>will execute script on host2 and host5. 
+Here is another example using more customers in one hostfile. Using multiple filters ./broadexec -f customer1.test.pilot -f customer2.test.pilot on following hostlist
+   host1 customer1 prod
+   host2 customer1 test pilot
+   host3 customer1 test
+   host4 customer2 test
+   host5 customer2 test pilot
+   host6 customer2 prod
+will execute script on host2 and host5. 
 
 You can combine as many filters and use as many levels as you wish, there are no limits.
 
 ## Reporting
 
-Output of each broadexec run is stored as report. If there are some errors, separate error report is created. In case broadexec grep functionality is used, also list report file is created. Default path is ./reports folder. By default reports are stored indefinetly, if you want old reports to be deleted automatically, add followinh line into your config and set number of days you want to keep reports.<code>TSI_STD_BRDEXEC_REPORT_CLEANUP_DAYS=90</code>
+Output of each broadexec run is stored as report. If there are some errors, separate error report is created. In case broadexec grep functionality is used, also list report file is created. Default path is ./reports folder. By default reports are stored indefinetly, if you want old reports to be deleted automatically, add followinh line into your config and set number of days you want to keep reports.
+BRDEXEC_REPORT_CLEANUP_DAYS=90
 
 ## Distributing files
 
@@ -116,13 +120,13 @@ Declaration of questions from scripts should be variable name in special format 
 Variable format:
 BRDEXEC_SCRIPT_QUESTION_{parameter}_{parameter_name_to_be_passed_to_script}
 
-First parameter is mandatory to be "r", "o" or "b".\\
-r - question is required and without answer, script will not be run\\
-o - question is optional and answer to it can be skipped by pressing ENTER\\
+First parameter is mandatory to be "r", "o" or "b".
+r - question is required and without answer, script will not be run
+o - question is optional and answer to it can be skipped by pressing ENTER
 b - used for situation for parameters without options
 
-For example this question in script\\
-BRDEXEC_SCRIPT_QUESTION_r_username\\
+For example this question in script
+BRDEXEC_SCRIPT_QUESTION_r_username
 will ask for username and if provided will pass answer to the script as parameter: -username ${ANSWER}
 
 ## Embedded script framework
@@ -135,12 +139,10 @@ Basically code you specify between ###BRDEXEC_EMBEDED START and ###BRDEXEC_EMBED
 ## Providing parameters for script via broadexec parameter
 
 You can forward parameters directly to script run by broadexec via -p parameter. It is useful when broadexec is run in batch mode via other script and you don't want it to ask any questions. Example:
-
-<code>./broadexec.sh  -h hosts/XXXXXXXX -s scripts/XXXXXXXX/broadexec_example_unlock_user_with_parameters.sh -p 'u admin_user'</code>
+   ./broadexec.sh  -h hosts/XXXXXXXX -s scripts/XXXXXXXX/broadexec_example_unlock_user_with_parameters.sh -p 'u admin_user'
 
 will result in broadexec running script like this
-
-<code>scripts/XXXXXXXX/broadexec_example_unlock_user_with_parameters.sh  -u admin_user</code>
+scripts/XXXXXXXX/broadexec_example_unlock_user_with_parameters.sh  -u admin_user
 
 You can provide multiple -p parameters. You need to ommit - character and have no other whitespaces as it can result in usage error or improper forwarding of values. Inside of embedded code you can check and interact with this parameters through BRDEXEC_QUESTION_SCRIPT_PARAMETERS variable.
 
@@ -154,17 +156,18 @@ FIXME
 
 As broadexec got big during development with many parameters, settings and possibilities there was need to create testing/selftesting framework primarily for broadexec, but it's usable for any other scripts as well. 
 
-To create own scenario file see some example scenario files. Until more developed, scenario is just message with what you are testing and what are you expecting. Example scenario for normal broadexec run<code>message 001: normal run with hostlist and script provided by parameters. Uptime should be displayed from all hosts in hostfile.
-broadexec_parameters -h test_scenarios/broadexec_development/test_hosts -s scripts/uptime.sh</code>
+To create own scenario file see some example scenario files. Until more developed, scenario is just message with what you are testing and what are you expecting. Example scenario for normal broadexec run
+   message 001: normal run with hostlist and script provided by parameters. Uptime should be displayed from all hosts in hostfile.
+   broadexec_parameters -h test_scenarios/broadexec_development/test_hosts -s scripts/uptime.sh
 It's simple, testing algorithm searches for lines with keywords and loads the data for test. See that we am using test hostsfile so we can predict results and check output more easily and in the future, algorithm can selftest and compare results itself and just let us know if there were some issues.
 
 Okay, one scenario is not enough, go on and create more so explanation about scenario lists will make sense. List of scenarios is config file which you will use to run all test scenarios inside, WIP version looks like this
-
-<code>message This is for now main list for broadexec test scenarios. folder test_scenarios/broadexec_development
-scenario 001_normal_run.scenario
-scenario 002_one_filter.scenario
-scenario 003_one_multilevel_filter.scenario
-scenario 004_simple_grep.scenario</code>
+   message This is for now main list for broadexec test scenarios. folder test_scenarios/broadexec_development
+   scenario 001_normal_run.scenario
+   scenario 002_one_filter.scenario
+   scenario 003_one_multilevel_filter.scenario
+   scenario 004_simple_grep.scenario
 Message will be displayed before any scenario run with info about this list. You can create lists just for checking some parameters based on your needs. Folder keyword is just shorthand you can use if you don't want to provide all relative/absolute path to every scenario.Then every scenario is run in order it is written in the list.
 
-Example test suite run with broadexec dev testing scenario<code>./broadexec.sh --run-test-scenario test_scenarios/broadexec_dev.list</code>
+Example test suite run with broadexec dev testing scenario
+   ./broadexec.sh --run-test-scenario test_scenarios/broadexec_dev.list
