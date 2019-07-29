@@ -2407,6 +2407,11 @@ limit_file_size () {
 #313
 brdexec_update_stats () {
 
+  ### do not run stats if stats file is not in use
+  if [ ! -f "${BRDEXEC_STATS_FILE}" ]; then
+    return 0
+  fi
+
   ### Change status
   if [ "${1}" = "-s" ]; then
     if [ ! -z "${2}" ]; then
