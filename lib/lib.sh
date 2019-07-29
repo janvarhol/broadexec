@@ -2895,22 +2895,24 @@ brdexec_admin_check_connectivity_and_sudo_functionality () { verbose -s "brdexec
 brdexec_admin_cleanup_report_files () {
 
   ### run cleanup only when it is in config
-  if [ ! -z "${BRDEXEC_REPORT_CLEANUP_DAYS}" ]; then
-    ### run cleanup only when it is a number
-    if [ "${BRDEXEC_REPORT_CLEANUP_DAYS}" -eq "${BRDEXEC_REPORT_CLEANUP_DAYS}" ] 2>/dev/null; then
-      ### and positive number meaning setting variable to zero disables cleanup
-      if [ "${BRDEXEC_REPORT_CLEANUP_DAYS}" -gt 0 ]; then
-        ### run cleanup just if it is in properly set report path
-        if [ ! -z "${BRDEXEC_REPORT_PATH}" ]; then
-          if [ "$(find ${BRDEXEC_REPORT_PATH} -type f -mtime +${BRDEXEC_REPORT_CLEANUP_DAYS} 2>/dev/null | grep -v tar.gz$ | wc -l)" -gt 0 ]; then
-            BRDEXEC_REPORT_CLEANUP_FILES_LIST="${BRDEXEC_REPORT_CLEANUP_FILES_LIST} $(find ${BRDEXEC_REPORT_PATH} -type f -mtime +${BRDEXEC_REPORT_CLEANUP_DAYS} 2>/dev/null | egrep ".report$|.report_error$|report_list$" | sed ':a;N;$!ba;s/\n/ /g')"
-            ### delete files
-            for BRDEXEC_REPORT_CLEANUP_FILE in ${BRDEXEC_REPORT_CLEANUP_FILES_LIST}; do
-              rm ${BRDEXEC_REPORT_CLEANUP_FILE}
-            done
-          fi
+  if [ ! -z "${BRDEXEC_REPORT_CLEANUP_DAYS}" ] && [ "${BRDEXEC_REPORT_CLEANUP_DAYS}" -eq "${BRDEXEC_REPORT_CLEANUP_DAYS}" ] 2>/dev/null && [ "${BRDEXEC_REPORT_CLEANUP_DAYS}" -gt 0 ] && [ ! -z "${BRDEXEC_REPORT_PATH}" ]; then
+    ### and only if it has not been run last 24 hours
+    if [ ! -f logs/report_cleanup_timestamp ]; then
+      date +%s > logs/report_cleanup_timestamp
+    else
+      BRDEXEC_REPORT_CLEANUP_TIME_NOW="$(date +%s)"
+      BRDEXEC_REPORT_CLEANUP_TIME_LOG="$(cat logs/report_cleanup_timestamp)"
+      BRDEXEC_REPORT_CLEANUP_TIME_DIF="$(echo "${BRDEXEC_REPORT_CLEANUP_TIME_NOW} - ${BRDEXEC_REPORT_CLEANUP_TIME_LOG}" | bc)"
+      if [ "${BRDEXEC_REPORT_CLEANUP_TIME_LOG}" -ne "${BRDEXEC_REPORT_CLEANUP_TIME_LOG}" 2>/dev/null ] || [ "${BRDEXEC_REPORT_CLEANUP_TIME_DIF}" -gt 86400 ]; then
+        if [ "$(find ${BRDEXEC_REPORT_PATH} -type f -mtime +${BRDEXEC_REPORT_CLEANUP_DAYS} 2>/dev/null | grep -v tar.gz$ | wc -l)" -gt 0 ]; then
+          BRDEXEC_REPORT_CLEANUP_FILES_LIST="${BRDEXEC_REPORT_CLEANUP_FILES_LIST} $(find ${BRDEXEC_REPORT_PATH} -type f -mtime +${BRDEXEC_REPORT_CLEANUP_DAYS} 2>/dev/null | egrep ".report$|.report_error$|report_list$" | sed ':a;N;$!ba;s/\n/ /g')"
+          ### delete files
+          for BRDEXEC_REPORT_CLEANUP_FILE in ${BRDEXEC_REPORT_CLEANUP_FILES_LIST}; do
+            rm ${BRDEXEC_REPORT_CLEANUP_FILE}
+          done
         fi
       fi
+      date +%s > logs/report_cleanup_timestamp
     fi
   fi
 }
