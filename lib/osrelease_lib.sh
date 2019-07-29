@@ -27,7 +27,11 @@ osrelease_get_os_version () {
     BRDEXEC_OS_MAJOR_VERSION="$(cat /etc/oracle-release | sed 's/.*release \([0-9.][0-9.]*\).*/\1/' | awk -F "." '{print $1}')"
     BRDEXEC_OS_MINOR_VERSION="$(cat /etc/oracle-release | sed 's/.*release \([0-9.][0-9.]*\).*/\1/' | awk -F "." '{print $2}')"
   elif [ -f /etc/redhat-release ]; then
-    BRDEXEC_OS_RELEASE=redhat
+    if [ "$(cat /etc/redhat-release | awk '{print $1}')" = "CentOS" ]; then
+      BRDEXEC_OS_RELEASE=centos
+    else
+      BRDEXEC_OS_RELEASE=redhat
+    fi
     BRDEXEC_OS_MAJOR_VERSION="$(cat /etc/redhat-release | sed 's/.*release \([0-9.][0-9.]*\).*/\1/' | awk -F "." '{print $1}')"
     BRDEXEC_OS_MINOR_VERSION="$(cat /etc/redhat-release | sed 's/.*release \([0-9.][0-9.]*\).*/\1/' | awk -F "." '{print $2}')"
   elif [ -f /etc/SuSE-release ]; then
