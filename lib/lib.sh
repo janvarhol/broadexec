@@ -57,10 +57,10 @@
 #   Broadexec script calls for getopts management to sort out arguments. If you need to add some,
 #   You can do it in brdexec_getopts_main. Serverlist selection is done in brdexec_select_hostlist.
 #   It ignores commented out servers and if there is just one serverlist, script will use it.
-# 
-#   Then most commonly brdexec_defined_option_exec will be called. 
+#
+#   Then most commonly brdexec_script_menu_selection will be called.
 #   This function just sorts out various scripts that are prepared and tested by somebody responsible and it calls
-#   brdexec_execute_temp_scripts which is doing actual magic stuff. 
+#   brdexec_execute_temp_scripts which is doing actual magic stuff.
 #
 #
 #################################
@@ -69,7 +69,7 @@
 #
 # 11   brdexec_execute_temp_scripts - main execution of temp scripts provided by filtering or options
 #
-# 12   brdexec_defined_option_exec - function to be run when you select to run set
+# 12   brdexec_script_menu_selection - function to be run when you select to run set
 #      of predefined scripts
 #
 # 13   brdexec_script_exec - function to be run when you input script path or name as argument to -s parameter
@@ -80,7 +80,7 @@
 #
 # 15   (11) brdexec_wait_for_pids_to_finish - loop for checking if every run on every server is finished
 #
-# 16 H (30,32) script_specific - helper function for various scripts like broadexec to enhance basic 
+# 16 H (30,32) script_specific - helper function for various scripts like broadexec to enhance basic
 #       standard library functions while preserving standardization of standard functions
 #
 # 17   brdexec_copy_file - copy selected file(s) to destination on remote hosts
@@ -104,12 +104,12 @@
 # 206 H (15) brdexec_display_output_until_timeout - check back in bursts from servers and display output continually
 #      until timeout
 #
-# 207 H (15) brdexec_timeouted - sort out timeouted servers, display info, write into report 
+# 207 H (15) brdexec_timeouted - sort out timeouted servers, display info, write into report
 #
 # 208 H (22) brdexec_select_hosts_filter - in case -l option is not present and hosts file selection takes place
 #      display select menu for all possible filters available in hosts file that was previously chosen
 #
-# 209 H (11) (41) brdexec_create_hosts_list_based_on_filter - separate function to recreate hostslist 
+# 209 H (11) (41) brdexec_create_hosts_list_based_on_filter - separate function to recreate hostslist
 #      to be used based on filter options entered
 #
 # 211 H brdexec_create_temporary_hosts_list_based_on_filter - due to complicated nature of filter selection this
@@ -145,7 +145,7 @@
 # 310 H (11) brdexec_custom_user_pwd - search for custom user and password in selected script and
 #       run broadexec with this credentials
 #
-# 311 H (11) brdexec_embeded_script - search for embeded script and run it to gather info for 
+# 311 H (11) brdexec_embeded_script - search for embeded script and run it to gather info for
 #       main script parameters
 #
 # 312 H limit_file_size - exit of file size broadexec is trying to write to exceeds size limit
@@ -167,7 +167,7 @@
 #
 # 45   (41) brdexec_admin_cleanup_report_files - cleanup report files based on settings
 #
-# 46   brdexec_check_updates - first function run after loading library into broadexec, 
+# 46   brdexec_check_updates - first function run after loading library into broadexec,
 #      it will check if config file is present and possible updates downloadable from git
 #
 # 47   brdexec_create_config_file - create basic config file when broadexec is run for the first time
@@ -237,7 +237,7 @@ brdexec_execute_temp_scripts () { verbose -s "brdexec_execute_temp_scripts ${@}"
 }
 
 #12
-brdexec_defined_option_exec () { verbose -s "brdexec_defined_option_exec ${@}"
+brdexec_script_menu_selection () { verbose -s "brdexec_script_menu_selection ${@}"
 
   ### get list of predefined scripts
   verbose 120 2
@@ -321,17 +321,17 @@ brdexec_defined_option_exec () { verbose -s "brdexec_defined_option_exec ${@}"
 }
 
 #13
-brdexec_script_exec () { verbose -s "brdexec_script_exec ${@}"
-
-  ### just run script if it is ok without selection
-  if [ ! -z "${BRDEXEC_SCRIPT_TO_RUN}" ] && [ -f "${BRDEXEC_SCRIPT_TO_RUN}" ]; then
-    brdexec_execute_temp_scripts -s "${BRDEXEC_SCRIPT_TO_RUN}"
-
-  ### in case there is wrong input run script select menu
-  else
-    brdexec_defined_option_exec
-  fi
-}
+#brdexec_script_exec () { verbose -s "brdexec_script_exec ${@}"
+#
+#  ### just run script if it is ok without selection
+#  if [ ! -z "${BRDEXEC_SCRIPT_TO_RUN}" ] && [ -f "${BRDEXEC_SCRIPT_TO_RUN}" ]; then
+#    brdexec_execute_temp_scripts -s "${BRDEXEC_SCRIPT_TO_RUN}"
+#
+#  ### in case there is wrong input run script select menu
+#  else
+#    brdexec_script_menu_selection
+#  fi
+#}
 
 #14
 brdexec_ssh_pid () { verbose -s "brdexec_ssh_pid ${@}"
@@ -382,11 +382,11 @@ EOF
       ### use scp to copy file due to conflicting algorithms in main ssh function and askpass script
       echo $SSH_ASKPASS_PASSWORD | $SSH_ASKPASS_SCRIPT scp ${2} ${BRDEXEC_SCRIPT_USER}@${BRDEXEC_SERVER}:/tmp/${BRDEXEC_RUNID}.sh
 
-      echo $SSH_ASKPASS_PASSWORD | $SSH_ASKPASS_SCRIPT ssh -o StrictHostKeyChecking=no -o ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT} -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o PasswordAuthentication=yes -o PubkeyAuthentication=no -q ${BRDEXEC_SCRIPT_USER}@${BRDEXEC_SERVER} "uname -n 2>>/tmp/${BRDEXEC_RUNID}.error >>/tmp/${BRDEXEC_RUNID}.data && ${BRDEXEC_RUNSHELL} \"sh /tmp/${BRDEXEC_RUNID}.sh${BRDEXEC_QUESTION_SCRIPT_PARAMETERS}${BRDEXEC_EMBEDED_PARAMETERS}\" 2>>/tmp/${BRDEXEC_RUNID}.error >>/tmp/${BRDEXEC_RUNID}.data ; rm /tmp/${BRDEXEC_RUNID}.sh" 
+      echo $SSH_ASKPASS_PASSWORD | $SSH_ASKPASS_SCRIPT ssh -o StrictHostKeyChecking=no -o ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT} -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o PasswordAuthentication=yes -o PubkeyAuthentication=no -q ${BRDEXEC_SCRIPT_USER}@${BRDEXEC_SERVER} "uname -n 2>>/tmp/${BRDEXEC_RUNID}.error >>/tmp/${BRDEXEC_RUNID}.data && ${BRDEXEC_RUNSHELL} \"sh /tmp/${BRDEXEC_RUNID}.sh${BRDEXEC_QUESTION_SCRIPT_PARAMETERS}${BRDEXEC_EMBEDED_PARAMETERS}\" 2>>/tmp/${BRDEXEC_RUNID}.error >>/tmp/${BRDEXEC_RUNID}.data ; rm /tmp/${BRDEXEC_RUNID}.sh"
 
       echo $SSH_ASKPASS_PASSWORD | $SSH_ASKPASS_SCRIPT ssh -o StrictHostKeyChecking=no -o ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT} -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o PasswordAuthentication=yes -o PubkeyAuthentication=no -q ${BRDEXEC_SCRIPT_USER}@${BRDEXEC_SERVER} "cat /tmp/${BRDEXEC_RUNID}.data"
       echo $SSH_ASKPASS_PASSWORD | $SSH_ASKPASS_SCRIPT ssh -o StrictHostKeyChecking=no -o ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT} -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o PasswordAuthentication=yes -o PubkeyAuthentication=no -q ${BRDEXEC_SCRIPT_USER}@${BRDEXEC_SERVER} "cat /tmp/${BRDEXEC_RUNID}.error"
-      
+
       ### catching PID ID to check on this session
       BRDEXEC_SSH_PID_ID="${!}"
       BRDEXEC_SSH_PIDS+=" ${BRDEXEC_SSH_PID_ID}"; verbose 141 3
@@ -416,7 +416,7 @@ EOF
 
     fi
   elif [ "${1}" = "wait_for_process_to_end" ]; then
- 
+
     BRDEXEC_SSH_KILLED_PID_TO_WAIT="${2}"
 
     ### wait for process to end
@@ -479,7 +479,7 @@ brdexec_wait_for_pids_to_finish () { verbose -s "brdexec_wait_for_pids_to_finish
 }
 
 #16
-script_specific () { 
+script_specific () {
 
   ### NOTE
   ### do not insert verbose -s into this function
@@ -812,7 +812,7 @@ brdexec_first_verbose_init () {
 
 #201
 brdexec_getopts_main () { verbose -s "brdexec_getopts_main ${@}"
- 
+
   ### display help when no parameter is present
   if [ "${#}" -ne 0 ]; then
 
@@ -934,7 +934,7 @@ brdexec_getopts_main () { verbose -s "brdexec_getopts_main ${@}"
           case ${1} in
             -* | "")
               brdexec_usage ;;
-            *) 
+            *)
               if [ -z "${BRDEXEC_SERVERLIST_CHOSEN}" ]; then
                 BRDEXEC_SERVERLIST_CHOSEN="${1}"
                 BRDEXEC_HOSTLIST_FROM_PARAMETER="yes"
@@ -988,7 +988,7 @@ brdexec_getopts_main () { verbose -s "brdexec_getopts_main ${@}"
           case ${1} in
             -* | "")
               echo "ERROR"; exit 1; shift ;;
-            *) 
+            *)
               BRDEXEC_RUN_TEST_SCENARIO="yes"
               TESTING_SCENARIO_FILE="${1}"; shift ;;
           esac ;;
@@ -1213,7 +1213,7 @@ brdexec_temp_files () { verbose -s "brdexec_temp_files ${@}"
 
   ### removal is run in loop outside this function based on which PID already finished
   elif [ "${1}" = "remove_main_output" ]; then
-    [ -f "${BRDEXEC_MAIN_RUN_OUTPUT_ARRAY[$BRDEXEC_SSH_PID]}" ] && rm ${BRDEXEC_MAIN_RUN_OUTPUT_ARRAY[$BRDEXEC_SSH_PID]} 
+    [ -f "${BRDEXEC_MAIN_RUN_OUTPUT_ARRAY[$BRDEXEC_SSH_PID]}" ] && rm ${BRDEXEC_MAIN_RUN_OUTPUT_ARRAY[$BRDEXEC_SSH_PID]}
   elif [ "${1}" = "remove_error_output" ]; then
     [ -f "${BRDEXEC_ERROR_OUTPUT_ARRAY[$BRDEXEC_SSH_PID]}" ] && rm ${BRDEXEC_ERROR_OUTPUT_ARRAY[$BRDEXEC_SSH_PID]}
   elif [ "${1}" = "remove_temp_files" ]; then
@@ -1237,7 +1237,7 @@ brdexec_display_output_until_timeout () { verbose -s "brdexec_display_output_unt
   ### let's initialize death counter and count total number of running pids
   local BRDEXEC_DEATH_COUNTER="$(expr $(date +%s) - ${BRDEXEC_SCRIPT_RUN_TIMEOUT})"
   local BRDEXEC_SSH_PID_TOTAL_COUNT="$(echo ${BRDEXEC_SSH_PIDS}) | wc -w)"
-  
+
   ### assume worst, hope for the best :)
   BRDEXEC_MAIN_RUN_TIMEOUTED="yes"
 
@@ -1596,7 +1596,7 @@ brdexec_create_hosts_list_based_on_filter () { verbose -s "brdexec_create_hosts_
 #init () {
 #
 #  ### RUNID is unique id based on date and PID except for stats run invoked externally, then it is inherited
-#  
+#
 #  RUNID="$(date '+%Y%m%d%H%M%S')_$$"
 #}
 
@@ -1725,7 +1725,7 @@ brdexec_verify_script_signature () {
 
 #214
 brdexec_check_for_conflicting_inputs () {
-  
+
   verbose 217 2
 
   ### in case you have filter but no hostslist
@@ -1933,7 +1933,7 @@ brdexec_generate_error_log () { verbose -s "brdexec_generate_error_log ${@}"
 
         ### if ssh knownhost not added, display special error
         if [ "$(cat ${BRDEXEC_ERROR_OUTPUT_ARRAY[$BRDEXEC_SSH_PID]} | grep -c "No ECDSA host key is known for")" -eq 1 ]; then
-          echo "$(head -n 1 ${BRDEXEC_ERROR_OUTPUT_ARRAY[$BRDEXEC_SSH_PID]}) ssh: No ECDSA host key is known for server and you have requested strict checking. Host key verification failed." >> ${BRDEXEC_MAIN_ERROR_CURLOG} 
+          echo "$(head -n 1 ${BRDEXEC_ERROR_OUTPUT_ARRAY[$BRDEXEC_SSH_PID]}) ssh: No ECDSA host key is known for server and you have requested strict checking. Host key verification failed." >> ${BRDEXEC_MAIN_ERROR_CURLOG}
 
         ### catch all other errors
         else
@@ -2052,7 +2052,7 @@ brdexec_repair_missing_known_hosts () { verbose -s "brdexec_repair_missing_known
             BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER="$(grep -n ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ~/.ssh/known_hosts | head -n 1 | awk -F ":" '{print $1}')"
 
             ### I am very proud of the following line!
-            awk -v linenumber="${BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER}" -v hostname="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" '{if(NR==linenumber){$1=$1","hostname; print}else{print}}' ~/.ssh/known_hosts > ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP} && mv ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP} ~/.ssh/known_hosts 
+            awk -v linenumber="${BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER}" -v hostname="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" '{if(NR==linenumber){$1=$1","hostname; print}else{print}}' ~/.ssh/known_hosts > ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP} && mv ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP} ~/.ssh/known_hosts
           fi
         fi
       else
@@ -2092,13 +2092,13 @@ brdexec_display_output () {
             print $1;
             ORS=" ";
             for (i=2; i<=NF; i++) {
-              if (i<NF) { 
-                ORS=" " 
-              } else { 
-                ORS="\n" 
-              } 
-              print $i 
-            } 
+              if (i<NF) {
+                ORS=" "
+              } else {
+                ORS="\n"
+              }
+              print $i
+            }
             }'
         fi
         echo -e "${1}" | sed ':a;N;$!ba;s/\n/ /g' | awk -v BRDEXEC_OUTPUT_HOSTNAME_DELIMITER="${BRDEXEC_OUTPUT_HOSTNAME_DELIMITER}" '{
@@ -2261,7 +2261,7 @@ brdexec_questions () { verbose -s "brdexec_questions ${@}"
   if [ -z "${BRDEXEC_SCRIPT_TO_RUN}" ]; then
     BRDEXEC_SCRIPT_TO_RUN="${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
   fi
- 
+
   ### checking if there are any questions
   if [ "$(grep -ic ^BRDEXEC_SCRIPT_QUESTION_ ${BRDEXEC_SCRIPT_TO_RUN})" -ne 0 ]; then
 
@@ -2572,7 +2572,7 @@ brdexec_admin_functions () { verbose -s "brdexec_admin_functions ${@}"
             done < ${BRDEXEC_ETCHOSTS_TMPFILE}
             mv ${BRDEXEC_ETCHOSTS_TMPFILE2} ${BRDEXEC_ETCHOSTS_TMPFILE}
             echo -ne "\nHosts file generated\n"
-            
+
             ### add entries to ssh config of user
             BRDEXEC_SSH_CONFIG_ENTRIES_ADDED=0
             BRDEXEC_SSH_CONFIG_ENTRIES_UPDATED=0
@@ -2888,7 +2888,8 @@ brdexec_admin_check_connectivity_and_sudo_functionality () { verbose -s "brdexec
   echo '#!/bin/bash' >> ${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY_SCRIPT}
   echo 'sudo su - -c "uname -n"' >> ${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY_SCRIPT}
   BRDEXEC_SCRIPT_TO_RUN="${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY_SCRIPT}"
-  brdexec_script_exec
+  # spring cleaning TODO: exchange script exec for new way once it is done
+  #brdexec_script_exec
   brdexec_wait_for_pids_to_finish
   brdexec_generate_error_log
   brdexec_display_error_log
@@ -2955,7 +2956,7 @@ brdexec_check_updates () { verbose -s "brdexec_check_updates ${@}"
       echo "BRDEXEC_SSH_PORT=${BRDEXEC_SSH_PORT}" >> conf/broadexec.conf
     fi
   fi
- 
+
   ### check and fix links
   #if [ ! -z "${BRDEXEC_TEAM_CONFIG}" ] || [ "${BRDEXEC_INSTALLED_NOW}" = "yes" ]; then
   #  ### check if default link is correct
@@ -2979,7 +2980,7 @@ brdexec_check_updates () { verbose -s "brdexec_check_updates ${@}"
   #  done
   #fi
 
-  ### import public gpg keys 
+  ### import public gpg keys
   if [ -d etc/gpg_pubkeys ]; then
     if [ "$(find etc/gpg_pubkeys/ -name *.gpg | tr '\n' ' ' | wc -w)" -gt 0 ]; then
       if [ "${BRDEXEC_INSTALLED_NOW}" = "yes" ]; then
@@ -3114,12 +3115,12 @@ brdexec_create_config_file () {
   else
     >&2 echo "Unable to fetch teamconfigs, probably wrong SSH tunnel settings."
     exit 1
-  fi 
+  fi
 
   ### create config file and links
   echo "BRDEXEC_TEAM_CONFIG=${BRDEXEC_TEAM_CONFIG}" >> conf/broadexec.conf
   echo -e "\nCreating links to team folder"
-  
+
   for BRDEXEC_TEAM_CONFIG_SUBFOLDER in conf hosts scripts
   do
     if [ -d "${BRDEXEC_TEAM_CONFIG_SUBFOLDER}" ]; then

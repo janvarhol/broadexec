@@ -60,7 +60,7 @@ if [ ! -z "${BRDEXEC_TEAM_CONFIG}" ] && [ -e "conf/${BRDEXEC_TEAM_CONFIG}" ] && 
         rm ${BRDEXEC_CONFIG_TMP_FILE}
       fi
     done < ./conf/${BRDEXEC_TEAM_CONFIG}/broadexec.conf
-  fi     
+  fi
 fi
 
 ### connect library
@@ -83,16 +83,6 @@ brdexec_admin_cleanup_report_files
 ### Run verbosity option precheck
 brdexec_first_verbose_init ${@}
 
-#TODO firstrun message until auto-configuration is implemented
-### Firstrun
-#if [ -f ./firstrun ]; then
-#  echo "--------------------------------------------------------------------------"
-#  echo "This is your first run of broadexec, welcome and hope you will enjoy it ! "
-#  echo "Please consider reading man and docs and configure your broadexec properly"
-#  echo "--------------------------------------------------------------------------"
-#  rm ./firstrun
-#fi
-
 # check installation
 if [ "$(grep -c "^#already installed" conf/broadexec.conf)" -eq 0 ]; then
   brdexec_install
@@ -100,18 +90,17 @@ fi
 
 ### Get main arguments for the script and process them also if some are missing fill in defaults
 brdexec_getopts_main ${@}
-
 brdexec_check_for_conflicting_inputs
 
 #TODO make this work so it can be enabled
 #brdexec_check_updates
 brdexec_variables_init ${@}
 
-### Run test suite with defined scenarios
+### Run test scenarios
 if [ ! -z "${BRDEXEC_RUN_TEST_SCENARIO}" ]; then
-  ### verify test library
+  ### verify test library #TODO
 
-  ### load test library
+  ### load test library #TODO check load
   . ./lib/testing_lib.sh
 
   testing_init_checks
@@ -126,8 +115,6 @@ fi
 ### Select hostlist from -h option, read path from conf, if non existing serverlist selected, give options to choose
 verbose 220 2
 verbose 221 2
-
-### Select hostlist from -h option, read path from conf, if non existing serverlist selected, give options to choose
 brdexec_hosts get_list_of_hostfiles
 
 ### Solving issue of missing hosts parameter
@@ -145,11 +132,19 @@ if [ "${BRDEXEC_ADMIN_FUNCTIONS}" = "yes" ]; then
 elif [ ! -z "${BRDEXEC_COPY_FILE}" ]; then
   brdexec_copy_file
 ### Run select for script
-elif [ "${BRDEXEC_DEFINED_OPTION_START}" = "yes" ]; then
-  brdexec_defined_option_exec
+#elif [ "${BRDEXEC_DEFINED_OPTION_START}" = "yes" ]; then
+#  brdexec_defined_option_exec
 ### Run script specified as argument to -s parameter
-elif [ ! -z "${BRDEXEC_INPUT_SCRIPT_PATH}" ]; then
-  brdexec_script_exec
+elif [ ! -z "${BRDEXEC_INPUT_SCRIPT_PATH}" ] || [ "${BRDEXEC_DEFINED_OPTION_START}" = "yes" ]; then
+  #brdexec_script_exec
+  ### spring cleaning #TODO make conditions more sane
+  ### just run script if it is ok without selection
+  if [ ! -z "${BRDEXEC_SCRIPT_TO_RUN}" ] && [ -f "${BRDEXEC_SCRIPT_TO_RUN}" ]; then
+    brdexec_execute_temp_scripts -s "${BRDEXEC_SCRIPT_TO_RUN}"
+  ### in case there is wrong input run script select menu
+  else
+    brdexec_script_menu_selection
+  fi
 else
   display_error "100" 1
 fi
