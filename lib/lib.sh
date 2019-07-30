@@ -273,7 +273,7 @@ brdexec_script_menu_selection () { verbose -s "brdexec_script_menu_selection ${@
       BRDEXEC_SCRIPT_SELECT_ID=0
       echo "Available scripts:"
       for BRDEXEC_PREDEFINED_SCRIPTS_ITEM in ${BRDEXEC_LIST_OF_PREDEFINED_SCRIPTS}; do
-	((BRDEXEC_SCRIPT_SELECT_ID++))
+	      ((BRDEXEC_SCRIPT_SELECT_ID++))
         echo "${BRDEXEC_SCRIPT_SELECT_ID}) ${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
       done
 
@@ -303,13 +303,6 @@ brdexec_script_menu_selection () { verbose -s "brdexec_script_menu_selection ${@
       BRDEXEC_SELECTED_PARAMETERS_INFO="${BRDEXEC_SELECTED_PARAMETERS_INFO} -s ${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
       BRDEXEC_SCRIPT_TO_RUN="${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
 
-     # ### verify script signature
-     # brdexec_verify_script_signature "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
-
-     # ### execute chosen script
-     # verbose 126 2
-     # brdexec_execute_temp_scripts -s "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
-
     ### missing predefined scripts
     else
       display_error "121" 2
@@ -320,19 +313,6 @@ brdexec_script_menu_selection () { verbose -s "brdexec_script_menu_selection ${@
     display_error "122" 2
   fi
 }
-
-#13
-#brdexec_script_exec () { verbose -s "brdexec_script_exec ${@}"
-#
-#  ### just run script if it is ok without selection
-#  if [ ! -z "${BRDEXEC_SCRIPT_TO_RUN}" ] && [ -f "${BRDEXEC_SCRIPT_TO_RUN}" ]; then
-#    brdexec_execute_temp_scripts -s "${BRDEXEC_SCRIPT_TO_RUN}"
-#
-#  ### in case there is wrong input run script select menu
-#  else
-#    brdexec_script_menu_selection
-#  fi
-#}
 
 #14
 brdexec_ssh_pid () { verbose -s "brdexec_ssh_pid ${@}"
@@ -456,8 +436,6 @@ EOF
 
 #15
 brdexec_wait_for_pids_to_finish () { verbose -s "brdexec_wait_for_pids_to_finish ${@}"
-
-  #verbose 150 1 verbose message disabled because if was flooding logfiles unnecessarily
 
   ### count timeouts from this moment
   BRDEXEC_START_TIME=$(date +%s)
@@ -755,11 +733,6 @@ brdexec_scripts () {
         fi
         ### verify script signature
         brdexec_verify_script_signature "${BRDEXEC_SCRIPT_TO_RUN}"
-
-        ### load hard coded broadexec environment variables from script
-        #if [ "$(grep -c "^BRDEXEC_HUMAN_READABLE_OUTPUT=1")" -gt 0 ]; then
-        #  BRDEXEC_HUMAN_READABLE_OUTPUT=1
-        #fi
       fi
     ;;
   esac
@@ -1592,14 +1565,6 @@ brdexec_create_hosts_list_based_on_filter () { verbose -s "brdexec_create_hosts_
     BRDEXEC_SERVERLIST_LOOP="$(cat ${BRDEXEC_SERVERLIST_FILTERED})"
   fi
 }
-
-##210
-#init () {
-#
-#  ### RUNID is unique id based on date and PID except for stats run invoked externally, then it is inherited
-#
-#  RUNID="$(date '+%Y%m%d%H%M%S')_$$"
-#}
 
 #211
 brdexec_create_temporary_hosts_list_based_on_filter () { verbose -s "brdexec_create_temporary_hosts_list_based_on_filter ${@}"
@@ -3249,13 +3214,6 @@ brdexec_install () {
   fi
 
   if [ ! -z "${BRDEXEC_USER_SSH_KEY}" ]; then
-#    echo -e "Enter location of your private SSH key\c"
-#    if [ ! -z "${BRDEXEX_INSTALL_PROPOSED_KEY}" ]; then
-#      echo -e " [${BRDEXEX_INSTALL_PROPOSED_KEY}]\c"
-#    fi
-#    echo -e ": \c"
-#    read BRDEXEC_INSTALL_USER_SSH_KEY
-#  else
     echo "SSH key already in config: ${BRDEXEC_USER_SSH_KEY}. Do you wish to edit it anyways [skip] (yes/skip):"
     read BRDEXEC_USER_SSH_KEY_FOUND
     if [ "${BRDEXEC_USER_SSH_KEY_FOUND}" = "" 2>/dev/null ]; then
@@ -3310,9 +3268,9 @@ brdexec_install () {
   echo -e "\n\n### Broadexec installation is now finished! \n"
 
   echo "Example:"
-  echo "Make sure you have ssh_key added (ssh-copy-id ${BRDEXEC_INSTALL_USER}@127.0.0.1)"
+  echo "Make sure you have ssh_key added (ssh-copy-id ${BRDEXEC_INSTALL_USER}@localhost)"
   echo "Make sure you can execute \"sudo\" without password"
-  echo "\$ ./broadexec.sh -s scripts/uptime.sh -H 127.0.0.1"
+  echo "\$ ./broadexec.sh -s scripts/uptime.sh -H localhost"
 
   ### we can get away without cleanup during installation, no tmp files written at this stage
   exit 0

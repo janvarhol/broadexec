@@ -31,18 +31,16 @@ if [ "${?}" -ne 0 ]; then
 fi
 
 ### connect config file
-if [ "$(md5sum ./etc/config_file_valid_entries.db 2>/dev/null | awk '{print $1}')" = "a9ea8a5f651c790d84ffad180e08130b" ]; then
-  if [ -f "./conf/broadexec.conf" ]; then
-    while read BRDEXEC_CONFIG_LINE; do
-      BRDEXEC_CONFIG_LINE_ITEM="$(echo "${BRDEXEC_CONFIG_LINE}" | awk -F "=" '{print $1}')"
-      if [ "$(grep -c "${BRDEXEC_CONFIG_LINE_ITEM}" ./etc/config_file_valid_entries.db)" -gt 0 ]; then
-        BRDEXEC_CONFIG_TMP_FILE="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-        echo "${BRDEXEC_CONFIG_LINE}" > ${BRDEXEC_CONFIG_TMP_FILE}
-        . ${BRDEXEC_CONFIG_TMP_FILE}
-        rm ${BRDEXEC_CONFIG_TMP_FILE}
-      fi
-    done < ./conf/broadexec.conf
-  fi
+if [ "$(md5sum ./etc/config_file_valid_entries.db 2>/dev/null | awk '{print $1}')" = "a9ea8a5f651c790d84ffad180e08130b" ] && [ -f "./conf/broadexec.conf" ]; then
+  while read BRDEXEC_CONFIG_LINE; do
+    BRDEXEC_CONFIG_LINE_ITEM="$(echo "${BRDEXEC_CONFIG_LINE}" | awk -F "=" '{print $1}')"
+    if [ "$(grep -c "${BRDEXEC_CONFIG_LINE_ITEM}" ./etc/config_file_valid_entries.db)" -gt 0 ]; then
+      BRDEXEC_CONFIG_TMP_FILE="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
+      echo "${BRDEXEC_CONFIG_LINE}" > ${BRDEXEC_CONFIG_TMP_FILE}
+      . ${BRDEXEC_CONFIG_TMP_FILE}
+      rm ${BRDEXEC_CONFIG_TMP_FILE}
+    fi
+  done < ./conf/broadexec.conf
 else
   >&2 echo "Unable to load configuration database, run broadexec install again to validate databases"
   exit 1
@@ -137,23 +135,8 @@ elif [ ! -z "${BRDEXEC_COPY_FILE}" ]; then
   brdexec_temp_files remove_temp_files
   exit 0
 ### Run script specified as argument to -s parameter
-#elif [ ! -z "${BRDEXEC_INPUT_SCRIPT_PATH}" ] || [ "${BRDEXEC_DEFINED_OPTION_START}" = "yes" ]; then
 elif [ -z "${BRDEXEC_INPUT_SCRIPT_PATH}" ] || [ ! -f "${BRDEXEC_INPUT_SCRIPT_PATH}" ] || [ -z "${BRDEXEC_SCRIPT_TO_RUN}" ] || [ ! -f "${BRDEXEC_SCRIPT_TO_RUN}" ]; then
   brdexec_script_menu_selection
-  #brdexec_script_exec
-  ### spring cleaning #TODO make conditions more sane
-  ### just run script if it is ok without selection
-  #if [ ! -z "${BRDEXEC_SCRIPT_TO_RUN}" ] && [ -f "${BRDEXEC_SCRIPT_TO_RUN}" ]; then
-  #  brdexec_execute_temp_scripts -s "${BRDEXEC_SCRIPT_TO_RUN}"
-  #### in case there is wrong input run script select menu
-  #else
-  #  #brdexec_script_menu_selection
-  #  ### verify script signature
-  #  brdexec_verify_script_signature "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
-  #  brdexec_execute_temp_scripts -s "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
-  #fi
-#else
-#  display_error "100" 1
 fi
 
 #spring cleaning #TODO clean vertbose messages
@@ -213,7 +196,6 @@ done
 if [ ! -z "${BRDEXEC_SERVERLIST_FILTER}" ]; then
   rm ${BRDEXEC_SERVERLIST_FILTERED} 2>/dev/null
 fi
-
 
 ### Check running pids and connection errors
 brdexec_wait_for_pids_to_finish
