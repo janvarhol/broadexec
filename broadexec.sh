@@ -127,7 +127,8 @@ brdexec_hosts create_excluded_hostlist
 
 ### If none or invalid script is selected via -s parameter display menu to choose from and run chosen script
 if [ "${BRDEXEC_ADMIN_FUNCTIONS}" = "yes" ]; then
-  brdexec_admin_functions
+  #brdexec_admin_functions
+  echo "Admin functions temporarily disabled"
   brdexec_temp_files remove_temp_files
   exit 0
 ### Run file copy
@@ -160,9 +161,59 @@ fi
 verbose 126 2
 
 ### verify script signature
-brdexec_verify_script_signature "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
+brdexec_verify_script_signature "${BRDEXEC_SCRIPT_TO_RUN}"
 
-brdexec_execute_temp_scripts -s "${BRDEXEC_SCRIPT_TO_RUN}"
+#brdexec_execute_temp_scripts -s "${BRDEXEC_SCRIPT_TO_RUN}"
+brdexec_create_hosts_list_based_on_filter
+
+### check missing known hosts
+#if [ -z "${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY}" ]; then
+brdexec_repair_missing_known_hosts
+#fi
+
+if [ -z "${BRDEXEC_BATCH_MODE}" ]; then
+  ### search for and ask questions by script
+  brdexec_questions
+
+  ### search for and execute embeded script
+  brdexec_embeded_script
+fi
+
+### search for custom user & password in script file
+brdexec_custom_user_pwd
+
+### make script with included info and libraries
+brdexec_make_temporary_script "${BRDEXEC_SCRIPT_TO_RUN}"
+
+### display little help in case menu selection was used
+if [ ! -z "${BRDEXEC_SELECTED_PARAMETERS_INFO}" ]; then
+  brdexec_display_output "To skip menu selection you can run broadexec next time with following parameters: \n./broadexec.sh ${BRDEXEC_PARAMETERS_BACKUP}${BRDEXEC_SELECTED_PARAMETERS_INFO}\n" 255
+fi
+
+### check if there is some hosts in generated hostslist
+if [ "$(echo "${BRDEXEC_SERVERLIST_LOOP}" | grep -v ^# | grep -v ^$ | wc -l)" -eq 0 ]; then
+  display_error "112" 1
+fi
+
+### set status from init to running in stats file
+brdexec_update_stats -p run_init_counts
+
+verbose 110 1
+for BRDEXEC_SERVER in ${BRDEXEC_SERVERLIST_LOOP}; do
+  BRDEXEC_SERVER_NAME="${BRDEXEC_SERVER}"
+  verbose 111 2
+  #### create temporary files for logging output
+  brdexec_temp_files create_exec
+  ### main ssh exec on background capturing outputs to temp file
+  brdexec_ssh_pid create "${BRDEXEC_TMP_SCRIPT}"
+  ### saving info about main output temp file and error output temp file to an array
+  BRDEXEC_MAIN_RUN_OUTPUT_ARRAY[$BRDEXEC_SSH_PID_ID]="${BRDEXEC_MAIN_RUN_OUTPUT}"
+  BRDEXEC_ERROR_OUTPUT_ARRAY[$BRDEXEC_SSH_PID_ID]="${BRDEXEC_ERROR_LOGFILE_MESSAGE}"
+done
+if [ ! -z "${BRDEXEC_SERVERLIST_FILTER}" ]; then
+  rm ${BRDEXEC_SERVERLIST_FILTERED} 2>/dev/null
+fi
+
 
 ### Check running pids and connection errors
 brdexec_wait_for_pids_to_finish
