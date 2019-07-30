@@ -128,35 +128,48 @@ brdexec_hosts create_excluded_hostlist
 ### If none or invalid script is selected via -s parameter display menu to choose from and run chosen script
 if [ "${BRDEXEC_ADMIN_FUNCTIONS}" = "yes" ]; then
   brdexec_admin_functions
+  brdexec_temp_files remove_temp_files
+  exit 0
 ### Run file copy
 elif [ ! -z "${BRDEXEC_COPY_FILE}" ]; then
   brdexec_copy_file
-### Run select for script
-#elif [ "${BRDEXEC_DEFINED_OPTION_START}" = "yes" ]; then
-#  brdexec_defined_option_exec
+  brdexec_temp_files remove_temp_files
+  exit 0
 ### Run script specified as argument to -s parameter
-elif [ ! -z "${BRDEXEC_INPUT_SCRIPT_PATH}" ] || [ "${BRDEXEC_DEFINED_OPTION_START}" = "yes" ]; then
+#elif [ ! -z "${BRDEXEC_INPUT_SCRIPT_PATH}" ] || [ "${BRDEXEC_DEFINED_OPTION_START}" = "yes" ]; then
+elif [ -z "${BRDEXEC_INPUT_SCRIPT_PATH}" ] || [ ! -f "${BRDEXEC_INPUT_SCRIPT_PATH}" ] || [ -z "${BRDEXEC_SCRIPT_TO_RUN}" ] || [ ! -f "${BRDEXEC_SCRIPT_TO_RUN}" ]; then
+  brdexec_script_menu_selection
   #brdexec_script_exec
   ### spring cleaning #TODO make conditions more sane
   ### just run script if it is ok without selection
-  if [ ! -z "${BRDEXEC_SCRIPT_TO_RUN}" ] && [ -f "${BRDEXEC_SCRIPT_TO_RUN}" ]; then
-    brdexec_execute_temp_scripts -s "${BRDEXEC_SCRIPT_TO_RUN}"
-  ### in case there is wrong input run script select menu
-  else
-    brdexec_script_menu_selection
-  fi
-else
-  display_error "100" 1
+  #if [ ! -z "${BRDEXEC_SCRIPT_TO_RUN}" ] && [ -f "${BRDEXEC_SCRIPT_TO_RUN}" ]; then
+  #  brdexec_execute_temp_scripts -s "${BRDEXEC_SCRIPT_TO_RUN}"
+  #### in case there is wrong input run script select menu
+  #else
+  #  #brdexec_script_menu_selection
+  #  ### verify script signature
+  #  brdexec_verify_script_signature "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
+  #  brdexec_execute_temp_scripts -s "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
+  #fi
+#else
+#  display_error "100" 1
 fi
 
-if [ -z "${BRDEXEC_ADMIN_FUNCTIONS}" ] && [ -z "${BRDEXEC_COPY_FILE}" ]; then
-  ### Check running pids and connection errors
-  brdexec_wait_for_pids_to_finish
-  ### Generate error log
-  brdexec_generate_error_log
-  ### Display error log
-  brdexec_display_error_log
-fi
+#spring cleaning #TODO clean vertbose messages
+### execute chosen script
+verbose 126 2
+
+### verify script signature
+brdexec_verify_script_signature "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
+
+brdexec_execute_temp_scripts -s "${BRDEXEC_SCRIPT_TO_RUN}"
+
+### Check running pids and connection errors
+brdexec_wait_for_pids_to_finish
+### Generate error log
+brdexec_generate_error_log
+### Display error log
+brdexec_display_error_log
 
 ### Failsafe for removal of temp files that could be forgotten or skipped
 brdexec_temp_files remove_temp_files

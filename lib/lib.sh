@@ -301,13 +301,14 @@ brdexec_script_menu_selection () { verbose -s "brdexec_script_menu_selection ${@
 
       ### add selection to info line about selected parameters
       BRDEXEC_SELECTED_PARAMETERS_INFO="${BRDEXEC_SELECTED_PARAMETERS_INFO} -s ${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
+      BRDEXEC_SCRIPT_TO_RUN="${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
 
-      ### verify script signature
-      brdexec_verify_script_signature "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
+     # ### verify script signature
+     # brdexec_verify_script_signature "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
 
-      ### execute chosen script
-      verbose 126 2
-      brdexec_execute_temp_scripts -s "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
+     # ### execute chosen script
+     # verbose 126 2
+     # brdexec_execute_temp_scripts -s "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
 
     ### missing predefined scripts
     else
