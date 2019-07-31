@@ -84,7 +84,7 @@ brdexec_first_verbose_init ${@}
 
 # check installation
 if [ "$(grep -c "^#already installed" conf/broadexec.conf)" -eq 0 ]; then
-  brdexec_install
+  brdexec_load_plugin brdexec_install
 fi
 
 ### Get main arguments for the script and process them also if some are missing fill in defaults
