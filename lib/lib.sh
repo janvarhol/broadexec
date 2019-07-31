@@ -121,6 +121,8 @@
 #
 # 214 H brdexec_check_for_conflicting_inputs
 #
+# 215   brdexec_load_plugin - if plugin is installed and enabled
+#
 ##################################################
 ###### Error/Output/Format/Export functions ######
 ##################################################
@@ -1734,6 +1736,18 @@ brdexec_check_for_conflicting_inputs () {
   fi
 }
 
+#215
+brdexec_load_plugin () {
+
+  #FIXME if parameter not present
+
+  ### check if plugin is enabled and installed
+  if [ "$(echo "${BRDEXEC_ENABLED_PLUGINS}" | grep -c "${1}")" -eq 1 ] && [ -f "plugins/${1}.sh" ]; then
+    ### run plugin
+    . ./plugins/${1}.sh
+  fi
+}
+
 #300
 display_error () {
 
@@ -2863,31 +2877,31 @@ brdexec_admin_check_connectivity_and_sudo_functionality () { verbose -s "brdexec
   rm ${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY_SCRIPT}
 }
 
-#45
-brdexec_admin_cleanup_report_files () {
-
-  ### run cleanup only when it is in config
-  if [ ! -z "${BRDEXEC_REPORT_CLEANUP_DAYS}" ] && [ "${BRDEXEC_REPORT_CLEANUP_DAYS}" -eq "${BRDEXEC_REPORT_CLEANUP_DAYS}" ] 2>/dev/null && [ "${BRDEXEC_REPORT_CLEANUP_DAYS}" -gt 0 ] && [ ! -z "${BRDEXEC_REPORT_PATH}" ]; then
-    ### and only if it has not been run last 24 hours
-    if [ ! -f logs/report_cleanup_timestamp ]; then
-      date +%s > logs/report_cleanup_timestamp
-    else
-      BRDEXEC_REPORT_CLEANUP_TIME_NOW="$(date +%s)"
-      BRDEXEC_REPORT_CLEANUP_TIME_LOG="$(cat logs/report_cleanup_timestamp)"
-      BRDEXEC_REPORT_CLEANUP_TIME_DIF="$(echo "${BRDEXEC_REPORT_CLEANUP_TIME_NOW} - ${BRDEXEC_REPORT_CLEANUP_TIME_LOG}" | bc)"
-      if [ "${BRDEXEC_REPORT_CLEANUP_TIME_LOG}" -ne "${BRDEXEC_REPORT_CLEANUP_TIME_LOG}" 2>/dev/null ] || [ "${BRDEXEC_REPORT_CLEANUP_TIME_DIF}" -gt 86400 ]; then
-        if [ "$(find ${BRDEXEC_REPORT_PATH} -type f -mtime +${BRDEXEC_REPORT_CLEANUP_DAYS} 2>/dev/null | grep -v tar.gz$ | wc -l)" -gt 0 ]; then
-          BRDEXEC_REPORT_CLEANUP_FILES_LIST="${BRDEXEC_REPORT_CLEANUP_FILES_LIST} $(find ${BRDEXEC_REPORT_PATH} -type f -mtime +${BRDEXEC_REPORT_CLEANUP_DAYS} 2>/dev/null | egrep ".report$|.report_error$|report_list$" | sed ':a;N;$!ba;s/\n/ /g')"
-          ### delete files
-          for BRDEXEC_REPORT_CLEANUP_FILE in ${BRDEXEC_REPORT_CLEANUP_FILES_LIST}; do
-            rm ${BRDEXEC_REPORT_CLEANUP_FILE}
-          done
-        fi
-      fi
-      date +%s > logs/report_cleanup_timestamp
-    fi
-  fi
-}
+##45
+#brdexec_admin_cleanup_report_files () {
+#
+#  ### run cleanup only when it is in config
+#  if [ ! -z "${BRDEXEC_REPORT_CLEANUP_DAYS}" ] && [ "${BRDEXEC_REPORT_CLEANUP_DAYS}" -eq "${BRDEXEC_REPORT_CLEANUP_DAYS}" ] 2>/dev/null && [ "${BRDEXEC_REPORT_CLEANUP_DAYS}" -gt 0 ] && [ ! -z "${BRDEXEC_REPORT_PATH}" ]; then
+#    ### and only if it has not been run last 24 hours
+#    if [ ! -f logs/report_cleanup_timestamp ]; then
+#      date +%s > logs/report_cleanup_timestamp
+#    else
+#      BRDEXEC_REPORT_CLEANUP_TIME_NOW="$(date +%s)"
+#      BRDEXEC_REPORT_CLEANUP_TIME_LOG="$(cat logs/report_cleanup_timestamp)"
+#      BRDEXEC_REPORT_CLEANUP_TIME_DIF="$(echo "${BRDEXEC_REPORT_CLEANUP_TIME_NOW} - ${BRDEXEC_REPORT_CLEANUP_TIME_LOG}" | bc)"
+#      if [ "${BRDEXEC_REPORT_CLEANUP_TIME_LOG}" -ne "${BRDEXEC_REPORT_CLEANUP_TIME_LOG}" 2>/dev/null ] || [ "${BRDEXEC_REPORT_CLEANUP_TIME_DIF}" -gt 86400 ]; then
+#        if [ "$(find ${BRDEXEC_REPORT_PATH} -type f -mtime +${BRDEXEC_REPORT_CLEANUP_DAYS} 2>/dev/null | grep -v tar.gz$ | wc -l)" -gt 0 ]; then
+#          BRDEXEC_REPORT_CLEANUP_FILES_LIST="${BRDEXEC_REPORT_CLEANUP_FILES_LIST} $(find ${BRDEXEC_REPORT_PATH} -type f -mtime +${BRDEXEC_REPORT_CLEANUP_DAYS} 2>/dev/null | egrep ".report$|.report_error$|report_list$" | sed ':a;N;$!ba;s/\n/ /g')"
+#          ### delete files
+#          for BRDEXEC_REPORT_CLEANUP_FILE in ${BRDEXEC_REPORT_CLEANUP_FILES_LIST}; do
+#            rm ${BRDEXEC_REPORT_CLEANUP_FILE}
+#          done
+#        fi
+#      fi
+#      date +%s > logs/report_cleanup_timestamp
+#    fi
+#  fi
+#}
 
 #46
 brdexec_check_updates () { verbose -s "brdexec_check_updates ${@}"

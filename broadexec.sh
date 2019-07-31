@@ -31,7 +31,7 @@ if [ "${?}" -ne 0 ]; then
 fi
 
 ### connect config file
-if [ "$(md5sum ./etc/config_file_valid_entries.db 2>/dev/null | awk '{print $1}')" = "a9ea8a5f651c790d84ffad180e08130b" ] && [ -f "./conf/broadexec.conf" ]; then
+if [ "$(md5sum ./etc/config_file_valid_entries.db 2>/dev/null | awk '{print $1}')" = "51bf4e4d19ec3927d5210f909f01692f" ] && [ -f "./conf/broadexec.conf" ]; then
   while read BRDEXEC_CONFIG_LINE; do
     BRDEXEC_CONFIG_LINE_ITEM="$(echo "${BRDEXEC_CONFIG_LINE}" | awk -F "=" '{print $1}')"
     if [ "$(grep -c "${BRDEXEC_CONFIG_LINE_ITEM}" ./etc/config_file_valid_entries.db)" -gt 0 ]; then
@@ -48,7 +48,7 @@ fi
 
 ### connect team config file
 if [ ! -z "${BRDEXEC_TEAM_CONFIG}" ] && [ -e "conf/${BRDEXEC_TEAM_CONFIG}" ] && [ -f "conf/${BRDEXEC_TEAM_CONFIG}/broadexec.conf" ]; then
-  if [ "$(md5sum ./etc/config_file_valid_entries.db 2>/dev/null | awk '{print $1}')" = "a9ea8a5f651c790d84ffad180e08130b" ]; then
+  if [ "$(md5sum ./etc/config_file_valid_entries.db 2>/dev/null | awk '{print $1}')" = "51bf4e4d19ec3927d5210f909f01692f" ]; then
     while read BRDEXEC_CONFIG_LINE; do
       BRDEXEC_CONFIG_LINE_ITEM="$(echo "${BRDEXEC_CONFIG_LINE}" | awk -F "=" '{print $1}')"
       if [ "$(grep -c "${BRDEXEC_CONFIG_LINE_ITEM}" ./etc/config_file_valid_entries.db)" -gt 0 ]; then
@@ -76,7 +76,8 @@ BRDEXEC_RUNID="brdexec_${RUNID}"
 SCRIPT_NAME="$(basename ${0})"
 
 ### run report files cleanup
-brdexec_admin_cleanup_report_files
+#brdexec_admin_cleanup_report_files
+brdexec_load_plugin cleanup_report_files
 
 ### Run verbosity option precheck
 brdexec_first_verbose_init ${@}
