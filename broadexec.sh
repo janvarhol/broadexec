@@ -145,7 +145,7 @@ fi
 verbose 126 2
 
 ### verify script signature
-brdexec_verify_script_signature "${BRDEXEC_SCRIPT_TO_RUN}"
+brdexec_load_plugin brdexec_verify_script_signature
 
 #brdexec_execute_temp_scripts -s "${BRDEXEC_SCRIPT_TO_RUN}"
 brdexec_create_hosts_list_based_on_filter
