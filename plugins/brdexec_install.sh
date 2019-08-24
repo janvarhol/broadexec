@@ -56,6 +56,7 @@ fi
 
 case "${BRDEXEC_INSTALL_USER}" in
   skip)
+    BRDEXEC_INSTALL_USER=${BRDEXEC_USER}
     echo "WARNING: Skipping User selection" ;;
   cancel)
     echo "WARNING: Cancelling installation"
@@ -133,6 +134,83 @@ case "${BRDEXEC_INSTALL_USER_SSH_KEY}" in
     echo "BRDEXEC_USER_SSH_KEY=${BRDEXEC_INSTALL_USER_SSH_KEY} written into conf/broadexec.conf"
 esac
 
+#teamconfigs
+echo
+echo "##########################################################################"
+echo "### Teamconfig selection ####################################################"
+echo
+echo "Broadexec supports teamwork. If you are using the same hostlists and scripts"
+echo "as your colleagues, you can share them eg. in git repository and distribute"
+echo "them to each other."
+echo
+
+if [ ! -z "${BRDEXEC_TEAM_CONFIG}" ]; then
+  echo -e "Teamconfig already selected: ${BRDEXEC_TEAM_CONFIG}. Do you wish to edit it anyways? [skip] (yes/skip): \c"
+  read BRDEXEC_TEAM_CONFIG_FOUND
+  if [ "${BRDEXEC_TEAM_CONFIG_FOUND}" = "" 2>/dev/null ]; then
+    BRDEXEC_TEAM_CONFIG_FOUND=skip
+  fi
+fi
+
+case "${BRDEXEC_TEAM_CONFIG_FOUND}" in
+  skip)
+    BRDEXEC_TEAM_CONFIG_SELECTED=skip ;;
+  *)
+    select BRDEXEC_TEAM_CONFIG_ITEM in $(ls -d ./teamconfigs/*/ | awk -F "/" '{print $3}'); do
+      if [ "$(ls -d ./teamconfigs/*/ | wc -w)" -lt "${REPLY}" 2>/dev/null ] || ! [ "${REPLY}" -eq "${REPLY}" 2>/dev/null ]; then
+        echo "Wrong input!"
+        BRDEXEC_TEAM_CONFIG_SELECTED=skip
+      fi
+      break
+    done ;;
+esac
+
+case "${BRDEXEC_TEAM_CONFIG_SELECTED}" in
+  skip)
+    echo "WARNING: Skipping team config selection" ;;
+  cancel)
+    echo "WARNING: Cancelling installation"
+    exit 0 ;;
+  abort)
+    echo "#already installed" >> conf/broadexec.conf
+    echo "\"   #already installed\" written into conf/broadexec.conf"
+    exit 0 ;;
+  *)
+    echo "OK: Team config selected"
+    BRDEXEC_TEAM_CONFIG=${BRDEXEC_TEAM_CONFIG_ITEM}
+    echo "BRDEXEC_TEAM_CONFIG=${BRDEXEC_TEAM_CONFIG_ITEM}" >> conf/broadexec.conf
+    echo "BRDEXEC_TEAM_CONFIG=${BRDEXEC_TEAM_CONFIG_ITEM} written into conf/broadexec.conf"
+esac
+
+
+### check and fix team config links
+if [ ! -z "${BRDEXEC_TEAM_CONFIG}" ]; then
+  ### check if default link is correct
+  if [ "$(ls -la ./default 2>/dev/null | awk -F " -> " '{print $2}')" != "./teamconfigs/${BRDEXEC_TEAM_CONFIG}" ]; then
+    brdexec_display_output "Fixing default link to teamconfigs/${BRDEXEC_TEAM_CONFIG}" 1
+    if [ -h ./default ]; then
+      unlink ./default
+    fi
+    ln -s ./teamconfigs/${BRDEXEC_TEAM_CONFIG} ./default
+  fi
+  for BRDEXEC_TEAM_CONFIG_SUBFOLDER in conf hosts scripts
+  do
+    if [ ! -d "../teamconfigs/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER}" ]; then
+      mkdir -p ../teamconfigs/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER} 2>/dev/null
+      if [ "${?}" -ne 0 ]; then
+        echo "Unable to create ../teamconfigs/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER}"
+      fi
+    fi
+    if [ -d "${BRDEXEC_TEAM_CONFIG_SUBFOLDER}" ]; then
+      if [ ! -h "${BRDEXEC_TEAM_CONFIG_SUBFOLDER}/${BRDEXEC_TEAM_CONFIG}" ]; then
+        echo "Creating link ${BRDEXEC_TEAM_CONFIG_SUBFOLDER}/${BRDEXEC_TEAM_CONFIG} to teamconfigs/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER}"
+        ln -s ../teamconfigs/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER} ${BRDEXEC_TEAM_CONFIG_SUBFOLDER}/${BRDEXEC_TEAM_CONFIG}
+      fi
+    fi
+  done
+fi
+
+echo
 echo -e "\n### That is it! ###"
 echo -e "\nThis is enough to get you started. To explore more configuration"
 echo "options you can check out config templates in templates/conf folder."
@@ -142,7 +220,10 @@ echo -e "\n   \"#already installed\" written into conf/broadexec.conf"
 echo -e "\n\n### Broadexec installation is now finished! \n"
 
 echo "Example:"
-echo "Make sure you have ssh_key added (ssh-copy-id ${BRDEXEC_INSTALL_USER}@localhost)"
+if [ "${BRDEXEC_INSTALL_USER}" != "" 2>/dev/null ]; then
+  BRDEXEC_INSTALL_USER="${BRDEXEC_INSTALL_USER}@"
+fi
+echo "Make sure you have ssh_key added (ssh-copy-id ${BRDEXEC_INSTALL_USER}localhost)"
 echo "Make sure you can execute \"sudo\" without password"
 echo "\$ ./broadexec.sh -s scripts/uptime.sh -H localhost"
 
