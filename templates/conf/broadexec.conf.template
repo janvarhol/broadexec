@@ -26,8 +26,8 @@ BRDEXEC_USER_SSH_KEY=~/.ssh/id_rsa
 ### Following values are available:
 ### sudo - call script using "sudo su - -c"
 ### sh - call script using "sh -c"
-### Default: sudo
-BRDEXEC_RUNSHELL=sudo
+### Default: sh
+BRDEXEC_RUNSHELL=sh
 
 
 ###################

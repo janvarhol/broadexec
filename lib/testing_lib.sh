@@ -44,7 +44,7 @@ testing_load_scenario () {
   ### for now only providing lists works
   echo -e "\nLoading scenario list"
   if [ "$(echo "${TESTING_SCENARIO_FILE}" | grep -c ".list$")" -ne 1 ]; then
-    echo "List provided seems not be proper list"
+    echo "List provided seems not be proper list. File needs to be ending with .list. Name of your file: ${TESTING_SCENARIO_FILE}"
     exit 1
   fi
 

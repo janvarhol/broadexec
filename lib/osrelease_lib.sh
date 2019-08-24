@@ -27,14 +27,21 @@ osrelease_get_os_version () {
     BRDEXEC_OS_MAJOR_VERSION="$(cat /etc/oracle-release | sed 's/.*release \([0-9.][0-9.]*\).*/\1/' | awk -F "." '{print $1}')"
     BRDEXEC_OS_MINOR_VERSION="$(cat /etc/oracle-release | sed 's/.*release \([0-9.][0-9.]*\).*/\1/' | awk -F "." '{print $2}')"
   elif [ -f /etc/redhat-release ]; then
-    BRDEXEC_OS_RELEASE=redhat
+    if [ "$(cat /etc/redhat-release | awk '{print $1}')" = "CentOS" ]; then
+      BRDEXEC_OS_RELEASE=centos
+    else
+      BRDEXEC_OS_RELEASE=redhat
+    fi
     BRDEXEC_OS_MAJOR_VERSION="$(cat /etc/redhat-release | sed 's/.*release \([0-9.][0-9.]*\).*/\1/' | awk -F "." '{print $1}')"
     BRDEXEC_OS_MINOR_VERSION="$(cat /etc/redhat-release | sed 's/.*release \([0-9.][0-9.]*\).*/\1/' | awk -F "." '{print $2}')"
   elif [ -f /etc/SuSE-release ]; then
     BRDEXEC_OS_RELEASE=sles
-    
     BRDEXEC_OS_MAJOR_VERSION="$(grep VERSION /etc/SuSE-release | awk -F "=" '{print $2}' | awk '{$1=$1};1')"
     BRDEXEC_OS_MINOR_VERSION="$(grep PATCHLEVEL /etc/SuSE-release | awk -F "=" '{print $2}' | awk '{$1=$1};1')"
+  elif [ -f /etc/manjaro-release ]; then
+    BRDEXEC_OS_RELEASE=manjaro
+    BRDEXEC_OS_MAJOR_VERSION="$(cat /etc/lsb-release | grep DISTRIB_RELEASE | awk -F "=" '{print $2}' | awk -F "." '{print $1}')"
+    BRDEXEC_OS_MINOR_VERSION="$(cat /etc/lsb-release | grep DISTRIB_RELEASE | awk -F "=" '{print $2}' | awk -F "." '{print $2}')"
   else
     echo "BRD_UNSUPPORTED Unable to get OS version."
     exit 1
