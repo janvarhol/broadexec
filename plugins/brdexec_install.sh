@@ -141,7 +141,7 @@ echo "### Teamconfig selection #################################################
 echo
 echo "Broadexec supports teamwork. If you are using the same hostlists and scripts"
 echo "as your colleagues, you can share them eg. in git repository and distribute"
-echo "them to each other."
+echo "them to each other. Learn more on github wiki."
 echo
 
 if [ ! -z "${BRDEXEC_TEAM_CONFIG}" ]; then
@@ -154,19 +154,6 @@ fi
 
 case "${BRDEXEC_TEAM_CONFIG_FOUND}" in
   skip)
-    BRDEXEC_TEAM_CONFIG_SELECTED=skip ;;
-  *)
-    select BRDEXEC_TEAM_CONFIG_ITEM in $(ls -d ./teamconfigs/*/ | awk -F "/" '{print $3}'); do
-      if [ "$(ls -d ./teamconfigs/*/ | wc -w)" -lt "${REPLY}" 2>/dev/null ] || ! [ "${REPLY}" -eq "${REPLY}" 2>/dev/null ]; then
-        echo "Wrong input!"
-        BRDEXEC_TEAM_CONFIG_SELECTED=skip
-      fi
-      break
-    done ;;
-esac
-
-case "${BRDEXEC_TEAM_CONFIG_SELECTED}" in
-  skip)
     echo "WARNING: Skipping team config selection" ;;
   cancel)
     echo "WARNING: Cancelling installation"
@@ -176,12 +163,22 @@ case "${BRDEXEC_TEAM_CONFIG_SELECTED}" in
     echo "\"   #already installed\" written into conf/broadexec.conf"
     exit 0 ;;
   *)
-    echo "OK: Team config selected"
-    BRDEXEC_TEAM_CONFIG=${BRDEXEC_TEAM_CONFIG_ITEM}
-    echo "BRDEXEC_TEAM_CONFIG=${BRDEXEC_TEAM_CONFIG_ITEM}" >> conf/broadexec.conf
-    echo "BRDEXEC_TEAM_CONFIG=${BRDEXEC_TEAM_CONFIG_ITEM} written into conf/broadexec.conf"
+    if [ "$(ls -d ./teamconfigs/*/ 2>/dev/null | wc -w)" -gt 0 ]; then
+      select BRDEXEC_TEAM_CONFIG_ITEM in $(ls -d ./teamconfigs/*/ | awk -F "/" '{print $3}'); do
+        if [ "$(ls -d ./teamconfigs/*/ 2>/dev/null | wc -w)" -lt "${REPLY}" 2>/dev/null ] || ! [ "${REPLY}" -eq "${REPLY}" 2>/dev/null ]; then
+          echo "Wrong input!"
+          BRDEXEC_TEAM_CONFIG_SELECTED=skip
+        fi
+        break
+      done
+      if [ "${BRDEXEC_TEAM_CONFIG_SELECTED}" != skip ]; then
+        echo "OK: Team config selected"
+        BRDEXEC_TEAM_CONFIG=${BRDEXEC_TEAM_CONFIG_ITEM}
+        echo "BRDEXEC_TEAM_CONFIG=${BRDEXEC_TEAM_CONFIG_ITEM}" >> conf/broadexec.conf
+        echo "BRDEXEC_TEAM_CONFIG=${BRDEXEC_TEAM_CONFIG_ITEM} written into conf/broadexec.conf"
+      fi
+    fi;;
 esac
-
 
 ### check and fix team config links
 if [ ! -z "${BRDEXEC_TEAM_CONFIG}" ]; then
