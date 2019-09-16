@@ -39,6 +39,7 @@ ERROR_MESSAGE[181]="There are no serverlists in serverlist folder. Provide some!
 ERROR_MESSAGE[183]="Error in function brdexec_hosts. You have to input number between 1 and $(echo "${BRDEXEC_LIST_OF_SERVERLISTS}" | wc -w) included."
 ERROR_MESSAGE[184]="Error in function brdexec_hosts. Path to hostsfile is invalid."
 ERROR_MESSAGE[182]="Error in function brdexec_hosts. Menu selections are disabled for batch mode. Unable to find requested hostlist."
+ERROR_MESSAGE[185]="Error in function brdexec_hosts. Menu selections are disabled because there is no menu selection plugin enabled."
 ERROR_MESSAGE[241]="Error in function brdexec_variables_init path to report saving is not a directory"
 ERROR_MESSAGE[242]="Error in function brdexec_variables_init directory is not writable by user $(whoami) fix it and run broadexec again"
 ERROR_MESSAGE[243]="Error in function brdexec_variables_init User for logging with SSH is missing. Correct it in config file or provide username via parameter"

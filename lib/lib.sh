@@ -637,47 +637,12 @@ brdexec_hosts () {
             fi
           fi
 
-          echo -e "\nAvailable hostlists:"
-
-          BRDEXEC_HOSTLIST_SELECT_ID=0
-          for BRDEXEC_HOSTLIST_CHOSEN_ITEM in ${BRDEXEC_LIST_OF_FULL_HOSTSFILES}
-          do
-            ((BRDEXEC_HOSTLIST_SELECT_ID++))
-            echo "${BRDEXEC_HOSTLIST_SELECT_ID}) ${BRDEXEC_HOSTLIST_CHOSEN_ITEM}"
-          done
-
-          ### display prompt
-          echo
-          if [ ! -z "${BRDEXEC_DEFAULT_HOSTS_FILE_PATH}" ]; then
-            if [ -f "${BRDEXEC_DEFAULT_HOSTS_FILE_PATH}" ]; then
-              echo -n "Select hostslist # [${BRDEXEC_DEFAULT_HOSTS_FILE_PATH}] "
-            else
-              echo -n "Select hostslist # "
-            fi
+          if [ ! -z "${BRDEXEC_DIALOG}" ]; then
+            dialog_run_selection_of_hostfiles
+          elif [ ! -z "${BRDEXEC_MENU_HOSTLISTS}" ]; then
+            brdexec_menu_hostlists_select
           else
-            echo -n "Select hostslist # "
-          fi
-          verbose 182 1
-
-          unset BRDEXEC_HOSTLIST_CHOSEN_ITEM
-          read BRDEXEC_HOSTLIST_CHOSEN_ITEM
-          if [ "${BRDEXEC_HOSTLIST_CHOSEN_ITEM}" = "" 2>/dev/null ]; then
-            if [ -f "${BRDEXEC_DEFAULT_HOSTS_FILE_PATH}" ]; then
-              BRDEXEC_HOSTLIST_CHOSEN_ITEM="${BRDEXEC_DEFAULT_HOSTS_FILE_PATH}"
-              brdexec_display_output "Default hostlist ${BRDEXEC_HOSTLIST_CHOSEN_ITEM} was selected\n" 255
-            else
-              display_error "183" 1
-            fi
-          elif ! [ "${BRDEXEC_HOSTLIST_CHOSEN_ITEM}" -eq "${BRDEXEC_HOSTLIST_CHOSEN_ITEM}" 2>/dev/null ]; then
-            display_error "183" 1
-          elif [ "$(echo "${BRDEXEC_LIST_OF_FULL_HOSTSFILES}" | wc -w)" -lt "${BRDEXEC_HOSTLIST_CHOSEN_ITEM}" 2>/dev/null ]; then
-            display_error "183" 1
-          elif [ "${BRDEXEC_HOSTLIST_CHOSEN_ITEM}" -lt 1 2>/dev/null ]; then
-            display_error "183" 1
-          else
-            BRDEXEC_HOSTLIST_SELECT_ID="${BRDEXEC_HOSTLIST_CHOSEN_ITEM}"
-            BRDEXEC_HOSTLIST_CHOSEN_ITEM="$(echo "${BRDEXEC_LIST_OF_FULL_HOSTSFILES}" | awk -v field="$BRDEXEC_HOSTLIST_CHOSEN_ITEM" '{print $field}')"
-            brdexec_display_output "${BRDEXEC_HOSTLIST_SELECT_ID}) ${BRDEXEC_HOSTLIST_CHOSEN_ITEM} was selected\n" 255
+            display_error "185" 1
           fi
 
           BRDEXEC_SERVERLIST_CHOSEN="${BRDEXEC_HOSTLIST_CHOSEN_ITEM}"
@@ -2010,12 +1975,12 @@ brdexec_repair_missing_known_hosts () { verbose -s "brdexec_repair_missing_known
       if [ "${1}" = "shout" ]; then
         brdexec_display_output "Executing keyscan on host ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" 1
       fi
-      ssh-keyscan ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} >/dev/null 2>&1
+      ssh-keyscan -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} >/dev/null 2>&1
       if [ "$?" -eq 0 ]; then
 
         ### adding keys to knownhosts
         brdexec_display_output "  Adding IP ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} of ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} to ~/.ssh/known_hosts" 2
-        ssh-keyscan ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} 2>/dev/null | head -n 1 >> ~/.ssh/known_hosts
+        ssh-keyscan -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} 2>/dev/null | head -n 1 >> ~/.ssh/known_hosts
 
         ### checking if it worked
         ssh -o "StrictHostKeyChecking=yes" -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_USER}@${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} uptime 2>&1 >/dev/null

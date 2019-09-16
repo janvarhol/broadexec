@@ -75,8 +75,11 @@ BRDEXEC_RUNID="brdexec_${RUNID}"
 ### tell library which script is being run for default non script specific functions
 SCRIPT_NAME="$(basename ${0})"
 
+### load all plugins with functions without any direct commands
+brdexec_load_plugin brdexec_dialog_gui
+brdexec_load_plugin brdexec_menu_hostlists
+
 ### run report files cleanup
-#brdexec_admin_cleanup_report_files
 brdexec_load_plugin cleanup_report_files
 
 ### Run verbosity option precheck
