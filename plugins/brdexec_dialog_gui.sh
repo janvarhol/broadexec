@@ -61,3 +61,8 @@ brdexec_dialog_gui_scripts_select () {
   BRDEXEC_DIALOG_CHOICE=$("${BRDEXEC_DIALOG_CMD[@]}" "${BRDEXEC_DIALOG_MENU_OPTIONS[@]}" 2>&1 >/dev/tty)
   BRDEXEC_PREDEFINED_SCRIPTS_ITEM="$(echo "${BRDEXEC_LIST_OF_PREDEFINED_SCRIPTS}" | awk -v field="$BRDEXEC_DIALOG_CHOICE" '{print $field}')"
 }
+
+brdexec_dialog_gui_info_about_parameters () {
+
+  dialog --title "Broadexec generated parameters" --msgbox "To skip menu selection you can run broadexec next time with following parameters: \n./broadexec.sh ${BRDEXEC_PARAMETERS_BACKUP}${BRDEXEC_SELECTED_PARAMETERS_INFO}\n" 22 76
+}

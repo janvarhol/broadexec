@@ -2290,7 +2290,6 @@ brdexec_custom_user_pwd () { verbose -s "brdexec_custom_user_pwd ${@}"
   if [ "$(grep -ic ^BRDEXEC_SCRIPT_PWD ${BRDEXEC_SCRIPT_TO_RUN})" -gt 0 ]; then
     BRDEXEC_SCRIPT_PWD="$(grep -i ^BRDEXEC_SCRIPT_PWD ${BRDEXEC_SCRIPT_TO_RUN} | head -n 1 | awk -F "=" '{for (i=2; i<=NF; i++) printf $i}')"
   fi
-#echo "TEST: .${BRDEXEC_SCRIPT_USER}. .${BRDEXEC_SCRIPT_PWD}."
   if [ ! -z "${BRDEXEC_SCRIPT_USER}" ] && [ ! -z "${BRDEXEC_SCRIPT_PWD}" ]; then
     brdexec_display_output "\nWarning: Script will be run with custom user ${BRDEXEC_SCRIPT_USER} and password specified in script. Press ENTER to continue..." 255
     read

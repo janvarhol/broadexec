@@ -1,5 +1,6 @@
 #!/bin/bash
 
+#set -x
 # This file is part of Broadexec.
 #
 # Broadexec is free software: you can redistribute it and/or modify
@@ -174,7 +175,11 @@ brdexec_make_temporary_script "${BRDEXEC_SCRIPT_TO_RUN}"
 
 ### display little help in case menu selection was used
 if [ ! -z "${BRDEXEC_SELECTED_PARAMETERS_INFO}" ]; then
-  brdexec_display_output "To skip menu selection you can run broadexec next time with following parameters: \n./broadexec.sh ${BRDEXEC_PARAMETERS_BACKUP}${BRDEXEC_SELECTED_PARAMETERS_INFO}\n" 255
+  if [ ! -z "${BRDEXEC_DIALOG}" ]; then
+    brdexec_dialog_gui_info_about_parameters
+  else
+    brdexec_display_output "To skip menu selection you can run broadexec next time with following parameters: \n./broadexec.sh ${BRDEXEC_PARAMETERS_BACKUP}${BRDEXEC_SELECTED_PARAMETERS_INFO}\n" 255
+  fi
 fi
 
 ### check if there is some hosts in generated hostslist
