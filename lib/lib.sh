@@ -272,34 +272,40 @@ brdexec_script_menu_selection () { verbose -s "brdexec_script_menu_selection ${@
       ### Display menu to choose from scripts
       verbose 124 2
 
-      BRDEXEC_SCRIPT_SELECT_ID=0
-      echo "Available scripts:"
-      for BRDEXEC_PREDEFINED_SCRIPTS_ITEM in ${BRDEXEC_LIST_OF_PREDEFINED_SCRIPTS}; do
-	      ((BRDEXEC_SCRIPT_SELECT_ID++))
-        echo "${BRDEXEC_SCRIPT_SELECT_ID}) ${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
-      done
-
-      ### setting prompt
-      echo
-      echo -n 'Select script to run #> '
-
-      unset BRDEXEC_PREDEFINED_SCRIPTS_ITEM
-      read BRDEXEC_PREDEFINED_SCRIPTS_ITEM
-      if [ "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}" = "" 2>/dev/null ]; then
-        display_error "120" 1
-      elif ! [ "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}" -eq "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}" 2>/dev/null ]; then
-        display_error "120" 1
-      elif [ "$(echo "${BRDEXEC_LIST_OF_PREDEFINED_SCRIPTS}" | wc -w)" -lt "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}" 2>/dev/null ]; then
-        display_error "120" 1
-      elif [ "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}" -lt 1 2>/dev/null ]; then
-        display_error "120" 1
+      if [ ! -z "${BRDEXEC_DIALOG}" ]; then
+        brdexec_dialog_gui_scripts_select
       else
-        BRDEXEC_SCRIPT_SELECT_ID="${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
-        BRDEXEC_PREDEFINED_SCRIPTS_ITEM="$(echo "${BRDEXEC_LIST_OF_PREDEFINED_SCRIPTS}" | awk -v field="$BRDEXEC_PREDEFINED_SCRIPTS_ITEM" '{print $field}')"
-        brdexec_display_output "${BRDEXEC_SCRIPT_SELECT_ID}) ${BRDEXEC_PREDEFINED_SCRIPTS_ITEM} was selected\n" 255
-      fi
 
-      brdexec_display_output "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM} was selected.\n" 255
+        BRDEXEC_SCRIPT_SELECT_ID=0
+        echo "Available scripts:"
+        for BRDEXEC_PREDEFINED_SCRIPTS_ITEM in ${BRDEXEC_LIST_OF_PREDEFINED_SCRIPTS}; do
+                ((BRDEXEC_SCRIPT_SELECT_ID++))
+          echo "${BRDEXEC_SCRIPT_SELECT_ID}) ${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
+        done
+
+        ### setting prompt
+        echo
+        echo -n 'Select script to run #> '
+
+        unset BRDEXEC_PREDEFINED_SCRIPTS_ITEM
+        read BRDEXEC_PREDEFINED_SCRIPTS_ITEM
+        if [ "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}" = "" 2>/dev/null ]; then
+          display_error "120" 1
+        elif ! [ "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}" -eq "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}" 2>/dev/null ]; then
+          display_error "120" 1
+        elif [ "$(echo "${BRDEXEC_LIST_OF_PREDEFINED_SCRIPTS}" | wc -w)" -lt "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}" 2>/dev/null ]; then
+          display_error "120" 1
+        elif [ "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}" -lt 1 2>/dev/null ]; then
+          display_error "120" 1
+        else
+          BRDEXEC_SCRIPT_SELECT_ID="${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
+          BRDEXEC_PREDEFINED_SCRIPTS_ITEM="$(echo "${BRDEXEC_LIST_OF_PREDEFINED_SCRIPTS}" | awk -v field="$BRDEXEC_PREDEFINED_SCRIPTS_ITEM" '{print $field}')"
+          brdexec_display_output "${BRDEXEC_SCRIPT_SELECT_ID}) ${BRDEXEC_PREDEFINED_SCRIPTS_ITEM} was selected\n" 255
+        fi
+
+        brdexec_display_output "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM} was selected.\n" 255
+
+      fi
 
       ### add selection to info line about selected parameters
       BRDEXEC_SELECTED_PARAMETERS_INFO="${BRDEXEC_SELECTED_PARAMETERS_INFO} -s ${BRDEXEC_PREDEFINED_SCRIPTS_ITEM}"
@@ -641,54 +647,20 @@ brdexec_hosts () {
             fi
           fi
 
-          echo -e "\nAvailable hostlists:"
-
-          BRDEXEC_HOSTLIST_SELECT_ID=0
-          for BRDEXEC_HOSTLIST_CHOSEN_ITEM in ${BRDEXEC_LIST_OF_FULL_HOSTSFILES}
-          do
-            ((BRDEXEC_HOSTLIST_SELECT_ID++))
-            echo "${BRDEXEC_HOSTLIST_SELECT_ID}) ${BRDEXEC_HOSTLIST_CHOSEN_ITEM}"
-          done
-
-          ### display prompt
-          echo
-          if [ ! -z "${BRDEXEC_DEFAULT_HOSTS_FILE_PATH}" ]; then
-            if [ -f "${BRDEXEC_DEFAULT_HOSTS_FILE_PATH}" ]; then
-              echo -n "Select hostslist # [${BRDEXEC_DEFAULT_HOSTS_FILE_PATH}] "
-            else
-              echo -n "Select hostslist # "
-            fi
+          if [ ! -z "${BRDEXEC_DIALOG}" ]; then
+            dialog_run_selection_of_hostfiles
+          elif [ ! -z "${BRDEXEC_MENU_HOSTLISTS}" ]; then
+            brdexec_menu_hostlists_select
           else
-            echo -n "Select hostslist # "
-          fi
-          verbose 182 1
-
-          unset BRDEXEC_HOSTLIST_CHOSEN_ITEM
-          read BRDEXEC_HOSTLIST_CHOSEN_ITEM
-          if [ "${BRDEXEC_HOSTLIST_CHOSEN_ITEM}" = "" 2>/dev/null ]; then
-            if [ -f "${BRDEXEC_DEFAULT_HOSTS_FILE_PATH}" ]; then
-              BRDEXEC_HOSTLIST_CHOSEN_ITEM="${BRDEXEC_DEFAULT_HOSTS_FILE_PATH}"
-              brdexec_display_output "Default hostlist ${BRDEXEC_HOSTLIST_CHOSEN_ITEM} was selected\n" 255
-            else
-              display_error "183" 1
-            fi
-          elif ! [ "${BRDEXEC_HOSTLIST_CHOSEN_ITEM}" -eq "${BRDEXEC_HOSTLIST_CHOSEN_ITEM}" 2>/dev/null ]; then
-            display_error "183" 1
-          elif [ "$(echo "${BRDEXEC_LIST_OF_FULL_HOSTSFILES}" | wc -w)" -lt "${BRDEXEC_HOSTLIST_CHOSEN_ITEM}" 2>/dev/null ]; then
-            display_error "183" 1
-          elif [ "${BRDEXEC_HOSTLIST_CHOSEN_ITEM}" -lt 1 2>/dev/null ]; then
-            display_error "183" 1
-          else
-            BRDEXEC_HOSTLIST_SELECT_ID="${BRDEXEC_HOSTLIST_CHOSEN_ITEM}"
-            BRDEXEC_HOSTLIST_CHOSEN_ITEM="$(echo "${BRDEXEC_LIST_OF_FULL_HOSTSFILES}" | awk -v field="$BRDEXEC_HOSTLIST_CHOSEN_ITEM" '{print $field}')"
-            brdexec_display_output "${BRDEXEC_HOSTLIST_SELECT_ID}) ${BRDEXEC_HOSTLIST_CHOSEN_ITEM} was selected\n" 255
+            display_error "185" 1
           fi
 
           BRDEXEC_SERVERLIST_CHOSEN="${BRDEXEC_HOSTLIST_CHOSEN_ITEM}"
           BRDEXEC_SELECTED_PARAMETERS_INFO="${BRDEXEC_SELECTED_PARAMETERS_INFO} -h ${BRDEXEC_HOSTLIST_CHOSEN_ITEM}"
 
           ### run selection of filter
-          brdexec_select_hosts_filter ${BRDEXEC_SERVERLIST_CHOSEN}
+          #FIXME temporarily disabled filter menu selection as it was quite buggy on more complicated hostlists and needs total rework...
+          #brdexec_select_hosts_filter ${BRDEXEC_SERVERLIST_CHOSEN}
 
           ### in case you want to select multiple filters
           ### not implemented, time will tell if needed
@@ -1510,18 +1482,22 @@ brdexec_select_hosts_filter () { verbose -s "brdexec_select_hosts_filter ${@}"
             if [ "${BRDEXEC_BATCH_MODE}" = "yes" ]; then
               display_error "2082" 1
             fi
-            select BRDEXEC_HOSTS_FILTER_SELECT_ITEM in ${BRDEXEC_HOSTS_FILTER_LIST}
-            do
-              ### check for invalid inputs
-              if [ "$(echo "${BRDEXEC_HOSTS_FILTER_LIST}" | wc -w)" -lt "${REPLY}" ] 2>/dev/null; then
-                display_error "2081" 1
-              fi
-              if ! [ "${REPLY}" -eq "${REPLY}" ] 2>/dev/null; then
-                display_error "2081" 1
-              fi
-              brdexec_display_output "${BRDEXEC_HOSTS_FILTER_SELECT_ITEM} was selected\n" 255
-              break
-            done
+            if [ ! -z "${BRDEXEC_DIALOG}" ]; then
+              brdexec_dialog_gui_hostlist_filter_selection
+            else
+              select BRDEXEC_HOSTS_FILTER_SELECT_ITEM in ${BRDEXEC_HOSTS_FILTER_LIST}
+              do
+                ### check for invalid inputs
+                if [ "$(echo "${BRDEXEC_HOSTS_FILTER_LIST}" | wc -w)" -lt "${REPLY}" ] 2>/dev/null; then
+                  display_error "2081" 1
+                fi
+                if ! [ "${REPLY}" -eq "${REPLY}" ] 2>/dev/null; then
+                  display_error "2081" 1
+                fi
+                brdexec_display_output "${BRDEXEC_HOSTS_FILTER_SELECT_ITEM} was selected\n" 255
+                break
+              done
+            fi
           fi
 
           ### update filter value depending on chosen one and
@@ -2017,12 +1993,12 @@ brdexec_repair_missing_known_hosts () { verbose -s "brdexec_repair_missing_known
       if [ "${1}" = "shout" ]; then
         brdexec_display_output "Executing keyscan on host ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" 1
       fi
-      ssh-keyscan ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} >/dev/null 2>&1
+      ssh-keyscan -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} >/dev/null 2>&1
       if [ "$?" -eq 0 ]; then
 
         ### adding keys to knownhosts
         brdexec_display_output "  Adding IP ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} of ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} to ~/.ssh/known_hosts" 2
-        ssh-keyscan ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} 2>/dev/null | head -n 1 >> ~/.ssh/known_hosts
+        ssh-keyscan -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} 2>/dev/null | head -n 1 >> ~/.ssh/known_hosts
 
         ### checking if it worked
         ssh -o "StrictHostKeyChecking=yes" -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_USER}@${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} uptime 2>&1 >/dev/null
@@ -2321,7 +2297,6 @@ brdexec_custom_user_pwd () { verbose -s "brdexec_custom_user_pwd ${@}"
   if [ "$(grep -ic ^BRDEXEC_SCRIPT_PWD ${BRDEXEC_SCRIPT_TO_RUN})" -gt 0 ]; then
     BRDEXEC_SCRIPT_PWD="$(grep -i ^BRDEXEC_SCRIPT_PWD ${BRDEXEC_SCRIPT_TO_RUN} | head -n 1 | awk -F "=" '{for (i=2; i<=NF; i++) printf $i}')"
   fi
-#echo "TEST: .${BRDEXEC_SCRIPT_USER}. .${BRDEXEC_SCRIPT_PWD}."
   if [ ! -z "${BRDEXEC_SCRIPT_USER}" ] && [ ! -z "${BRDEXEC_SCRIPT_PWD}" ]; then
     brdexec_display_output "\nWarning: Script will be run with custom user ${BRDEXEC_SCRIPT_USER} and password specified in script. Press ENTER to continue..." 255
     read
