@@ -25,9 +25,18 @@ BRDEXEC_USER_SSH_KEY=~/.ssh/id_rsa
 ### Shell for calling the script ###
 ### Following values are available:
 ### sudo - call script using "sudo su - -c"
+### secured_sudo  -see below for special use
 ### sh - call script using "sh -c"
 ### Default: sh
 BRDEXEC_RUNSHELL=sh
+
+### secured_sudo
+### For this to work, you need to copy broadexec_secured_sudo.sh script to all hosts
+### that you intend to use it. To the same path and set up sudoers so it can be run without password
+### Script can be renamed as you wish and it's path and full name put into BRDEXEC_SECURED_SUDO_SCRIPT variable into config
+### eg BRDEXEC_SECURED_SUDO_SCRIPT=/root/broadexec_secured_sudo.sh
+### Broadexec will create folder in /tmp with unique broadexec ID and put the script into it so the secured sudo script
+### will know which script to run.
 
 
 ###################

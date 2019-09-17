@@ -332,7 +332,14 @@ brdexec_ssh_pid () { verbose -s "brdexec_ssh_pid ${@}"
     ### main ssh command of broadexec
     ### check for script with custom credentials
     if [ -z "${BRDEXEC_SCRIPT_CUSTOM_CREDENTIALS}" ]; then
-      cat ${2} | ssh -o StrictHostKeyChecking=yes -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_USER}@${BRDEXEC_SERVER} "cat > /tmp/${BRDEXEC_RUNID}.sh && uname -n && ${BRDEXEC_RUNSHELL} \"sh /tmp/${BRDEXEC_RUNID}.sh${BRDEXEC_QUESTION_SCRIPT_PARAMETERS}${BRDEXEC_EMBEDED_PARAMETERS}\" ; rm /tmp/${BRDEXEC_RUNID}.sh" 2>>${BRDEXEC_ERROR_LOGFILE_MESSAGE} >> ${BRDEXEC_MAIN_RUN_OUTPUT} &
+      if [ "${BRDEXEC_RUNSHELL}" = "secured_sudo" 2>/dev/null ]; then
+        if [ -z "${BRDEXEC_SECURED_SUDO_SCRIPT}" ]; then
+          display_error "140" 2
+        fi
+        cat ${2} | ssh -o StrictHostKeyChecking=yes -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_USER}@${BRDEXEC_SERVER} "cat > /tmp/${BRDEXEC_RUNID}.sh && mkdir /tmp/${BRDEXEC_RUNID} && mv /tmp/${BRDEXEC_RUNID}.sh /tmp/${BRDEXEC_RUNID}/  && uname -n && echo \"${BRDEXEC_QUESTION_SCRIPT_PARAMETERS}${BRDEXEC_EMBEDED_PARAMETERS}\" > /tmp/${BRDEXEC_RUNID}/${BRDEXEC_RUNID}.parameters && cd /tmp/${BRDEXEC_RUNID} && sudo ${BRDEXEC_SECURED_SUDO_SCRIPT}; rm /tmp/${BRDEXEC_RUNID}/${BRDEXEC_RUNID}.sh; rm /tmp/${BRDEXEC_RUNID}/${BRDEXEC_RUNID}.parameters; rmdir /tmp/${BRDEXEC_RUNID}" 2>>${BRDEXEC_ERROR_LOGFILE_MESSAGE} >> ${BRDEXEC_MAIN_RUN_OUTPUT} &
+      else
+        cat ${2} | ssh -o StrictHostKeyChecking=yes -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_USER}@${BRDEXEC_SERVER} "cat > /tmp/${BRDEXEC_RUNID}.sh && uname -n && ${BRDEXEC_RUNSHELL} \"sh /tmp/${BRDEXEC_RUNID}.sh${BRDEXEC_QUESTION_SCRIPT_PARAMETERS}${BRDEXEC_EMBEDED_PARAMETERS}\" ; rm /tmp/${BRDEXEC_RUNID}.sh" 2>>${BRDEXEC_ERROR_LOGFILE_MESSAGE} >> ${BRDEXEC_MAIN_RUN_OUTPUT} &
+      fi
 
       ### catching PID ID to check on this session
       BRDEXEC_SSH_PID_ID="${!}"
@@ -367,12 +374,9 @@ EOF
 
       echo $SSH_ASKPASS_PASSWORD | $SSH_ASKPASS_SCRIPT ssh -o StrictHostKeyChecking=no -o ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT} -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o PasswordAuthentication=yes -o PubkeyAuthentication=no -q ${BRDEXEC_SCRIPT_USER}@${BRDEXEC_SERVER} "uname -n 2>>/tmp/${BRDEXEC_RUNID}.error >>/tmp/${BRDEXEC_RUNID}.data && ${BRDEXEC_RUNSHELL} \"sh /tmp/${BRDEXEC_RUNID}.sh${BRDEXEC_QUESTION_SCRIPT_PARAMETERS}${BRDEXEC_EMBEDED_PARAMETERS}\" 2>>/tmp/${BRDEXEC_RUNID}.error >>/tmp/${BRDEXEC_RUNID}.data ; rm /tmp/${BRDEXEC_RUNID}.sh"
 
-      echo $SSH_ASKPASS_PASSWORD | $SSH_ASKPASS_SCRIPT ssh -o StrictHostKeyChecking=no -o ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT} -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o PasswordAuthentication=yes -o PubkeyAuthentication=no -q ${BRDEXEC_SCRIPT_USER}@${BRDEXEC_SERVER} "cat /tmp/${BRDEXEC_RUNID}.data"
-      echo $SSH_ASKPASS_PASSWORD | $SSH_ASKPASS_SCRIPT ssh -o StrictHostKeyChecking=no -o ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT} -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o PasswordAuthentication=yes -o PubkeyAuthentication=no -q ${BRDEXEC_SCRIPT_USER}@${BRDEXEC_SERVER} "cat /tmp/${BRDEXEC_RUNID}.error"
+      echo $SSH_ASKPASS_PASSWORD | $SSH_ASKPASS_SCRIPT ssh -o StrictHostKeyChecking=no -o ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT} -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o PasswordAuthentication=yes -o PubkeyAuthentication=no -q ${BRDEXEC_SCRIPT_USER}@${BRDEXEC_SERVER} "cat /tmp/${BRDEXEC_RUNID}.data && rm -f /tmp/${BRDEXEC_RUNID}.data"
+      echo $SSH_ASKPASS_PASSWORD | $SSH_ASKPASS_SCRIPT ssh -o StrictHostKeyChecking=no -o ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT} -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o PasswordAuthentication=yes -o PubkeyAuthentication=no -q ${BRDEXEC_SCRIPT_USER}@${BRDEXEC_SERVER} "cat /tmp/${BRDEXEC_RUNID}.error && rm -f /tmp/${BRDEXEC_RUNID}.error"
 
-      ### catching PID ID to check on this session
-      BRDEXEC_SSH_PID_ID="${!}"
-      BRDEXEC_SSH_PIDS+=" ${BRDEXEC_SSH_PID_ID}"; verbose 141 3
       rm ${SSH_ASKPASS_SCRIPT}
 
     fi
@@ -1042,8 +1046,9 @@ brdexec_variables_init () { verbose -s "brdexec_variables_init ${@}"
   fi
 
   ### reset runid in case it is provided via option
-  BRDEXEC_RUNID="${BRDEXEC_EXTERNAL_RUNID}"
-
+  if [ ! -z "${BRDEXEC_EXTERNAL_RUNID}" ]; then
+    BRDEXEC_RUNID="${BRDEXEC_EXTERNAL_RUNID}"
+  fi
 
   ### check if user is loaded with config file or parameter
   if [ -z "${BRDEXEC_USER}" ] || [ "${BRDEXEC_USER}" = "" 2>/dev/null ]; then
@@ -1088,6 +1093,8 @@ brdexec_variables_init () { verbose -s "brdexec_variables_init ${@}"
     BRDEXEC_RUNSHELL="sh -c"
   elif [ "${BRDEXEC_RUNSHELL}" = "sudo" 2>/dev/null ]; then
     BRDEXEC_RUNSHELL="sudo sh -c"
+  elif [ "${BRDEXEC_RUNSHELL}" = "secured_sudo" 2>/dev/null ]; then
+     BRDEXEC_RUNSHELL="secured_sudo"
   elif [ "${BRDEXEC_RUNSHELL}" = "sudosu" 2>/dev/null ]; then
     BRDEXEC_RUNSHELL="sudo su - -c"
   else #default nosudo/sh

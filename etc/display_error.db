@@ -9,6 +9,7 @@ ERROR_MESSAGE[121]="Error in function brdexec_defined_option_exec. Predefined sc
 ERROR_MESSAGE[122]="Error in function brdexec_defined_option_exec. Folder for predefined functions is missing. Try to reinstall Broadexec or contact support."
 ERROR_MESSAGE[123]="Error in function brdexec_defined_option_exec. File for saving the report could not be created"
 ERROR_MESSAGE[124]="Error in function brdexec_defined_option_exec. Menu selections are disabled for batch mode. Unable to find requested script."
+ERROR_MESSAGE[140]="Error in function brdexec_ssh_pid. BRDEXEC_SECURED_SUDO_SCRIPT variable is not set."
 ERROR_MESSAGE[170]="Error in function brdexec_copy_file. Destination folder must be absolute path."
 ERROR_MESSAGE[171]="Error in function brdexec_copy_file. Source file is not file."
 ERROR_MESSAGE[172]="Error in function brdexec_copy_file. For security reasons destination folder can not have more than one dot in the name."
