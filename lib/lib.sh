@@ -1769,12 +1769,13 @@ brdexec_load_all_plugins () {
   BRDEXEC_LOAD_PLUGIN_LIMIT=0
 
   ### check system dependencies
-  for BRDEXEC_PLUGIN_ITEM in $(ls -1 ./plugins | grep "sh$" | grep -v brdexec_install.sh); do
+  for BRDEXEC_PLUGIN_ITEM in $(ls -1 ./plugins | grep -v brdexec_install); do
     if [ "$(grep -c "^###SYSTEM_DEPENDENCIES" ./plugins/${BRDEXEC_PLUGIN_ITEM})" -eq 1 ]; then
       for BRDEXEC_PLUGIN_SYSTEM_DEPENDENCY in $(grep "^###SYSTEM_DEPENDENCIES" ./plugins/${BRDEXEC_PLUGIN_ITEM} | awk '{for (i=2; i<=NF; i++) print $i}'); do
-        which ${BRDEXEC_PLUGIN_SYSTEM_DEPENDENCY} 2>/dev/null 1&>2
+        which ${BRDEXEC_PLUGIN_SYSTEM_DEPENDENCY} 2>/dev/null 1>/dev/null
         if [ "$?" -ne 0 ]; then
           verbose 2161 2
+#FIXME add warning about unsatisfied depndencies with proper exit
           if [ "$(echo "${BRDEXEC_DISABLED_PLUGIN_LIST}" | grep -wc "${BRDEXEC_PLUGIN_ITEM}")" -eq 0 ]; then
             BRDEXEC_DISABLED_PLUGIN_LIST="${BRDEXEC_DISABLED_PLUGIN_LIST} ${BRDEXEC_PLUGIN_ITEM}"
           fi
@@ -1784,7 +1785,7 @@ brdexec_load_all_plugins () {
     fi
   done
 
-  for BRDEXEC_PLUGIN_ITEM in $(ls -1 ./plugins | grep "sh$" | grep -v brdexec_install.sh); do
+  for BRDEXEC_PLUGIN_ITEM in $(ls -1 ./plugins | grep -v brdexec_install); do
     verbose 2160 2
     if [ "$(echo "${BRDEXEC_DISABLED_PLUGIN_LIST}" | grep -wc "${BRDEXEC_PLUGIN_ITEM}")" -eq 0 ] && [ "$(echo "${BRDEXEC_LOADED_PLUGIN_LIST}" | grep -wc "${BRDEXEC_PLUGIN_ITEM}")" -eq 0 ]; then
       brdexec_load_plugin ${BRDEXEC_PLUGIN_ITEM}

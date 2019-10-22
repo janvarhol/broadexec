@@ -32,7 +32,7 @@ if [ "${?}" -ne 0 ]; then
 fi
 
 ### check for md5sum
-md5sum broadexec.sh 2>/dev/null 1&>2
+md5sum broadexec.sh 2>/dev/null 1>/dev/null
 if [ "$?" -ne 0 ]; then
   >&2 echo "ERROR: Could not find md5sum."
   exit 1
@@ -83,6 +83,9 @@ BRDEXEC_RUNID="brdexec_${RUNID}"
 ### tell library which script is being run for default non script specific functions
 SCRIPT_NAME="$(basename ${0})"
 
+### Run verbosity option precheck
+brdexec_first_verbose_init ${@}
+
 ### load all enabled plugins
 brdexec_load_all_plugins
 
@@ -94,9 +97,6 @@ brdexec_execute_plugin_hooks brdexec_init
 
 ### run report files cleanup
 #brdexec_load_plugin cleanup_report_files
-
-### Run verbosity option precheck
-brdexec_first_verbose_init ${@}
 
 # check installation
 if [ "$(grep -c "^#already installed" conf/broadexec.conf)" -eq 0 ]; then
