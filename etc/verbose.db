@@ -41,3 +41,6 @@ VERBOSE_MESSAGE[462]="Function brdexec_check_updates checking if there was updat
 VERBOSE_MESSAGE[463]="Function brdexec_check_updates running update."
 VERBOSE_MESSAGE[464]="Function brdexec_check_updates connection to git server established."
 VERBOSE_MESSAGE[465]="Function brdexec_check_updates connection to git can not be set up. Update is not running."
+VERBOSE_MESSAGE[2160]="Function brdexec_load_all_plugins loading plugin ${BRDEXEC_PLUGIN_ITEM}"
+VERBOSE_MESSAGE[2161]="Function brdexec_load_all_plugins dependency not found ${BRDEXEC_PLUGIN_SYSTEM_DEPENDENCY} for plugin ${BRDEXEC_PLUGIN_ITEM}"
+VERBOSE_MESSAGE[2150]="Function brdexec_load_plugin there were errors when loading plugin ${1}"

@@ -21,18 +21,25 @@
 ### to view available parameters run broadexec -h
 ### if run without parameters it will provide menu of available scripts and hostlists with limited basic functionality
 
-BRDEXEC_VERSION="0.9.0"
+BRDEXEC_VERSION="0.1"
 
 ### manage paths and links
 BRDEXEC_WORKING_DIRECTORY="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "${BRDEXEC_WORKING_DIRECTORY}"
 if [ "${?}" -ne 0 ]; then
-  >&2 echo "There was problem changing directory to ${BRDEXEC_WORKING_DIRECTORY}. Check and repair it manually."
+  >&2 echo "ERROR: There was problem changing directory to ${BRDEXEC_WORKING_DIRECTORY}. Check and repair it manually."
+  exit 1
+fi
+
+### check for md5sum
+md5sum broadexec.sh 2>/dev/null 1&>2
+if [ "$?" -ne 0 ]; then
+  >&2 echo "ERROR: Could not find md5sum."
   exit 1
 fi
 
 ### connect config file
-if [ "$(md5sum ./etc/config_file_valid_entries.db 2>/dev/null | awk '{print $1}')" = "8773c6a7b20a12d10fca2f2ea16f87b7" ] && [ -f "./conf/broadexec.conf" ]; then
+if [ "$(md5sum ./etc/config_file_valid_entries.db 2>/dev/null | awk '{print $1}')" = "8773c6a7b20a12d10fca2f2ea16f87b7" 2>/dev/null ] && [ -f "./conf/broadexec.conf" ]; then
   while read BRDEXEC_CONFIG_LINE; do
     BRDEXEC_CONFIG_LINE_ITEM="$(echo "${BRDEXEC_CONFIG_LINE}" | awk -F "=" '{print $1}')"
     if [ "$(grep -c "${BRDEXEC_CONFIG_LINE_ITEM}" ./etc/config_file_valid_entries.db)" -gt 0 ]; then
@@ -65,7 +72,7 @@ fi
 ### connect library
 . ./lib/lib.sh
 if [ "${?}" -ne 0 ]; then
-  >&2 echo "There was problem connecting to library lib.sh Check and install it manually."
+  >&2 echo "ERROR: There was problem connecting to library lib.sh Check and install it manually."
   exit 1
 fi
 
@@ -76,12 +83,17 @@ BRDEXEC_RUNID="brdexec_${RUNID}"
 ### tell library which script is being run for default non script specific functions
 SCRIPT_NAME="$(basename ${0})"
 
-### load all plugins with functions without any direct commands
-brdexec_load_plugin brdexec_dialog_gui
-brdexec_load_plugin brdexec_menu_hostlists
+### load all enabled plugins
+brdexec_load_all_plugins
+
+#brdexec_load_plugin brdexec_dialog_gui
+#brdexec_load_plugin brdexec_menu_hostlists
+
+### run plugin hooks for start of script
+brdexec_execute_plugin_hooks brdexec_init
 
 ### run report files cleanup
-brdexec_load_plugin cleanup_report_files
+#brdexec_load_plugin cleanup_report_files
 
 ### Run verbosity option precheck
 brdexec_first_verbose_init ${@}
@@ -124,6 +136,8 @@ brdexec_hosts get_list_of_hostfiles
 if [ -z "${BRDEXEC_DEFAULT_HOSTS_FOLDER_SET}" ] && [ -z "${BRDEXEC_HOSTS}" ] ; then
   brdexec_hosts run_selection_of_hostfiles
 fi
+
+brdexec_execute_plugin_hooks brdexec_manipulate_hostfiles
 
 ### create excluded hostlist if needed
 brdexec_hosts create_excluded_hostlist

@@ -648,7 +648,7 @@ brdexec_hosts () {
           fi
 
           if [ ! -z "${BRDEXEC_DIALOG}" ]; then
-            dialog_run_selection_of_hostfiles
+            brdexec_dialog_gui_selection_of_hostfiles
           elif [ ! -z "${BRDEXEC_MENU_HOSTLISTS}" ]; then
             brdexec_menu_hostlists_select
           else
@@ -1722,13 +1722,88 @@ brdexec_check_for_conflicting_inputs () {
 #215
 brdexec_load_plugin () {
 
-  #FIXME if parameter not present
+  ((BRDEXEC_LOAD_PLUGIN_LIMIT++))
+  if [ "${BRDEXEC_LOAD_PLUGIN_LIMIT}" -gt 200 ]; then
+    display_error "2150" 1
+  fi
+
+  if [ -z "$1" ]; then
+    return 1
+  fi
+  if [ "$(echo "${BRDEXEC_LOADED_PLUGIN_LIST}" | grep -wc "$1")" -gt 0 ]; then
+    return 0
+  fi
+  if [ "$(echo "${BRDEXEC_DISABLED_PLUGIN_LIST}" | grep -wc "$1")" -gt 0 ]; then
+    return 1
+  fi
+
+  if [ "$(grep -c "^###BRDEXEC_DEPENDENCIES" ./plugins/${BRDEXEC_PLUGIN_ITEM})" -eq 1 ]; then
+    for BRDEXEC_PLUGIN_INTERNAL_DEPENDENCY in $(grep "^###BRDEXEC_DEPENDENCIES" ./plugins/${1} | awk '{for (i=2; i<=NF; i++) print $i}'); do
+      brdexec_load_plugin ${BRDEXEC_PLUGIN_INTERNAL_DEPENDENCY}
+    done
+  fi
 
   ### check if plugin is enabled and installed
-  if [ "$(echo "${BRDEXEC_ENABLED_PLUGINS}" | grep -c "${1}")" -eq 1 ] && [ -f "plugins/${1}.sh" ]; then
+  if [ "$(echo "${BRDEXEC_ENABLED_PLUGINS}" | grep -wc "${1}")" -eq 1 ] && [ -f "plugins/${1}" ]; then
     ### run plugin
-    . ./plugins/${1}.sh
+    . ./plugins/${1}
+    if [ "$?" -ne 0 ]; then
+      verbose 2150 2
+      return 1
+    else
+      BRDEXEC_LOADED_PLUGIN_LIST="${BRDEXEC_LOADED_PLUGIN_LIST} ${1}"
+    fi
+  else
+    return 1
   fi
+}
+
+#216
+brdexec_load_all_plugins () {
+
+  if [ ! -d ./plugins ]; then
+    return 1
+  fi
+
+  ### to prevent infinite looping just in case :)
+  BRDEXEC_LOAD_PLUGIN_LIMIT=0
+
+  ### check system dependencies
+  for BRDEXEC_PLUGIN_ITEM in $(ls -1 ./plugins | grep "sh$" | grep -v brdexec_install.sh); do
+    if [ "$(grep -c "^###SYSTEM_DEPENDENCIES" ./plugins/${BRDEXEC_PLUGIN_ITEM})" -eq 1 ]; then
+      for BRDEXEC_PLUGIN_SYSTEM_DEPENDENCY in $(grep "^###SYSTEM_DEPENDENCIES" ./plugins/${BRDEXEC_PLUGIN_ITEM} | awk '{for (i=2; i<=NF; i++) print $i}'); do
+        which ${BRDEXEC_PLUGIN_SYSTEM_DEPENDENCY} 2>/dev/null 1&>2
+        if [ "$?" -ne 0 ]; then
+          verbose 2161 2
+          if [ "$(echo "${BRDEXEC_DISABLED_PLUGIN_LIST}" | grep -wc "${BRDEXEC_PLUGIN_ITEM}")" -eq 0 ]; then
+            BRDEXEC_DISABLED_PLUGIN_LIST="${BRDEXEC_DISABLED_PLUGIN_LIST} ${BRDEXEC_PLUGIN_ITEM}"
+          fi
+          break
+        fi
+      done
+    fi
+  done
+
+  for BRDEXEC_PLUGIN_ITEM in $(ls -1 ./plugins | grep "sh$" | grep -v brdexec_install.sh); do
+    verbose 2160 2
+    if [ "$(echo "${BRDEXEC_DISABLED_PLUGIN_LIST}" | grep -wc "${BRDEXEC_PLUGIN_ITEM}")" -eq 0 ] && [ "$(echo "${BRDEXEC_LOADED_PLUGIN_LIST}" | grep -wc "${BRDEXEC_PLUGIN_ITEM}")" -eq 0 ]; then
+      brdexec_load_plugin ${BRDEXEC_PLUGIN_ITEM}
+    fi
+  done
+}
+
+#217
+brdexec_execute_plugin_hooks () {
+
+  if [ -z "$1" ] || [ -z "${BRDEXEC_LOADED_PLUGIN_LIST}" ]; then
+    return 1
+  fi
+
+  for BRDEXEC_PLUGIN_ITEM in ${BRDEXEC_LOADED_PLUGIN_LIST}; do
+    if [ "$(grep -c "${BRDEXEC_PLUGIN_ITEM}__${1}" ./plugins/${BRDEXEC_PLUGIN_ITEM})" -gt 0 ]; then
+      "${BRDEXEC_PLUGIN_ITEM}__${1}"
+    fi
+  done
 }
 
 #300

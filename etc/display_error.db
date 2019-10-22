@@ -73,4 +73,4 @@ ERROR_MESSAGE[472]="Error in brdexec_create_config_file. You have to input valid
 ERROR_MESSAGE[473]="Error in brdexec_create_config_file. Wrong SSH port input."
 ERROR_MESSAGE[474]="Error in brdexec_create_config_file. conf folder is missing, but can not be created."
 ERROR_MESSAGE[475]="Error in brdexec_create_config_file. hosts folder is missing, but can not be created."
-
+ERROR_MESSAGE[2150]="Error in function brdexec_load_plugin. Max load plugin reached. Check for dependency conflicts."
