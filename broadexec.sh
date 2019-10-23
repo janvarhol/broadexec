@@ -206,6 +206,16 @@ brdexec_update_stats -p run_init_counts
 
 verbose 110 1
 for BRDEXEC_SERVER in ${BRDEXEC_SERVERLIST_LOOP}; do
+
+  if [ "$(echo "${BRDEXEC_SERVER}" | grep -c "@")" -eq 1 ]; then
+    BRDEXEC_SERVERNAME="$(echo "${BRDEXEC_SERVER}" | awk -F "@" '{print $2}')"
+  else
+    BRDEXEC_SERVERNAME="$(echo "${BRDEXEC_SERVER}")"
+  fi
+  if [ "$(echo "${BRDEXEC_SERVERNAME}" | grep -c ":")" -eq 1 ]; then
+    BRDEXEC_SERVERNAME="$(echo "${BRDEXEC_SERVERNAME}" | awk -F ":" '{print $1}')"
+  fi
+
   BRDEXEC_SERVER_NAME="${BRDEXEC_SERVER}"
   verbose 111 2
   #### create temporary files for logging output

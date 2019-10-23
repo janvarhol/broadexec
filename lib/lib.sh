@@ -328,6 +328,8 @@ brdexec_ssh_pid () { verbose -s "brdexec_ssh_pid ${@}"
   ### create ssh process
   if [ "${1}" = "create" ]; then
 
+    brdexec_extract_username_port_from_hostname
+
     ### check for entry in broadexec hosts file and use it if found
     if [ ! -z "${BRDEXEC_SERVER}" ] && [ -f "${BRDEXEC_HOSTS_FILE}" ]; then
       if [ "$(grep -ic "${BRDEXEC_SERVER}" ${BRDEXEC_HOSTS_FILE} 2>/dev/null)" -gt 0 ] 2>/dev/null; then
@@ -342,9 +344,9 @@ brdexec_ssh_pid () { verbose -s "brdexec_ssh_pid ${@}"
         if [ -z "${BRDEXEC_SECURED_SUDO_SCRIPT}" ]; then
           display_error "140" 2
         fi
-        cat ${2} | ssh -o StrictHostKeyChecking=yes -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_USER}@${BRDEXEC_SERVER} "cat > /tmp/${BRDEXEC_RUNID}.sh && mkdir /tmp/${BRDEXEC_RUNID} && mv /tmp/${BRDEXEC_RUNID}.sh /tmp/${BRDEXEC_RUNID}/  && uname -n && echo \"${BRDEXEC_QUESTION_SCRIPT_PARAMETERS}${BRDEXEC_EMBEDED_PARAMETERS}\" > /tmp/${BRDEXEC_RUNID}/${BRDEXEC_RUNID}.parameters && cd /tmp/${BRDEXEC_RUNID} && sudo ${BRDEXEC_SECURED_SUDO_SCRIPT}; rm /tmp/${BRDEXEC_RUNID}/${BRDEXEC_RUNID}.sh; rm /tmp/${BRDEXEC_RUNID}/${BRDEXEC_RUNID}.parameters; rmdir /tmp/${BRDEXEC_RUNID}" 2>>${BRDEXEC_ERROR_LOGFILE_MESSAGE} >> ${BRDEXEC_MAIN_RUN_OUTPUT} &
+        cat ${2} | ssh ${BRDEXEC_SSH_PORT_CONNECTION} -o StrictHostKeyChecking=yes -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_USER_SSH}@${BRDEXEC_SERVER} "cat > /tmp/${BRDEXEC_RUNID}.sh && mkdir /tmp/${BRDEXEC_RUNID} && mv /tmp/${BRDEXEC_RUNID}.sh /tmp/${BRDEXEC_RUNID}/  && uname -n && echo \"${BRDEXEC_QUESTION_SCRIPT_PARAMETERS}${BRDEXEC_EMBEDED_PARAMETERS}\" > /tmp/${BRDEXEC_RUNID}/${BRDEXEC_RUNID}.parameters && cd /tmp/${BRDEXEC_RUNID} && sudo ${BRDEXEC_SECURED_SUDO_SCRIPT}; rm /tmp/${BRDEXEC_RUNID}/${BRDEXEC_RUNID}.sh; rm /tmp/${BRDEXEC_RUNID}/${BRDEXEC_RUNID}.parameters; rmdir /tmp/${BRDEXEC_RUNID}" 2>>${BRDEXEC_ERROR_LOGFILE_MESSAGE} >> ${BRDEXEC_MAIN_RUN_OUTPUT} &
       else
-        cat ${2} | ssh -o StrictHostKeyChecking=yes -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_USER}@${BRDEXEC_SERVER} "cat > /tmp/${BRDEXEC_RUNID}.sh && uname -n && ${BRDEXEC_RUNSHELL} \"sh /tmp/${BRDEXEC_RUNID}.sh${BRDEXEC_QUESTION_SCRIPT_PARAMETERS}${BRDEXEC_EMBEDED_PARAMETERS}\" ; rm /tmp/${BRDEXEC_RUNID}.sh" 2>>${BRDEXEC_ERROR_LOGFILE_MESSAGE} >> ${BRDEXEC_MAIN_RUN_OUTPUT} &
+        cat ${2} | ssh ${BRDEXEC_SSH_PORT_CONNECTION} -o StrictHostKeyChecking=yes -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_USER_SSH}@${BRDEXEC_SERVER} "cat > /tmp/${BRDEXEC_RUNID}.sh && uname -n && ${BRDEXEC_RUNSHELL} \"sh /tmp/${BRDEXEC_RUNID}.sh${BRDEXEC_QUESTION_SCRIPT_PARAMETERS}${BRDEXEC_EMBEDED_PARAMETERS}\" ; rm /tmp/${BRDEXEC_RUNID}.sh" 2>>${BRDEXEC_ERROR_LOGFILE_MESSAGE} >> ${BRDEXEC_MAIN_RUN_OUTPUT} &
       fi
 
       ### catching PID ID to check on this session
@@ -547,8 +549,9 @@ brdexec_copy_file () { verbose -s "brdexec_copy_file ${@}"
   ### copy files
   for BRDEXEC_SERVER in ${BRDEXEC_SERVERLIST_LOOP}; do
     BRDEXEC_SERVER_NAME="${BRDEXEC_SERVER}"
+    brdexec_extract_username_port_from_hostname
     echo -e "${BRDEXEC_SERVER}"
-    scp -B -C -p -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_COPY_FILE} ${BRDEXEC_USER}@${BRDEXEC_SERVER}:${BRDEXEC_COPY_DESTINATION}
+    scp ${BRDEXEC_SCP_PORT_CONNECTION} -B -C -p -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_COPY_FILE} ${BRDEXEC_USER_SSH}@${BRDEXEC_SERVER}:${BRDEXEC_COPY_DESTINATION}
   done
 }
 
@@ -1203,7 +1206,14 @@ brdexec_display_output_until_timeout () { verbose -s "brdexec_display_output_unt
     local BRDEXEC_DEATH_COUNTER="$(expr $(date +%s) - ${BRDEXEC_SCRIPT_RUN_TIMEOUT})"
     for BRDEXEC_SSH_PID in ${BRDEXEC_SSH_PIDS}; do
       verbose 260 3
-      BRDEXEC_SERVERNAME_DISPLAY="$(cat ${BRDEXEC_MAIN_RUN_OUTPUT_ARRAY[$BRDEXEC_SSH_PID]} | head -n 1 | awk '{print $1}')"
+      if [ "$(cat ${BRDEXEC_MAIN_RUN_OUTPUT_ARRAY[$BRDEXEC_SSH_PID]} | head -n 1 | awk '{print $1}' | grep -c "@")" -eq 1 ]; then
+        BRDEXEC_SERVERNAME_DISPLAY="$(cat ${BRDEXEC_MAIN_RUN_OUTPUT_ARRAY[$BRDEXEC_SSH_PID]} | head -n 1 | awk '{print $1}' | awk -F "@" '{print $2}')"
+      else
+        BRDEXEC_SERVERNAME_DISPLAY="$(cat ${BRDEXEC_MAIN_RUN_OUTPUT_ARRAY[$BRDEXEC_SSH_PID]} | head -n 1 | awk '{print $1}')"
+      fi
+      if [ "$(echo "${BRDEXEC_SERVERNAME_DISPLAY}" | grep -c ":")" -eq 1 ]; then
+        BRDEXEC_SERVERNAME_DISPLAY="$(echo "${BRDEXEC_SERVERNAME_DISPLAY}" | awk -F ":" '{print $1}')"
+      fi
 
       ### checking only not yet displayed outputs which are finished
       if [ "${BRDEXEC_MAIN_OUTPUT_ALREADY_DISPLAYED_ARRAY[$BRDEXEC_SSH_PID]}" != "yes" ]; then
@@ -3193,6 +3203,30 @@ brdexec_create_config_file () {
     fi
   fi
   exit 1
+}
+
+##48
+brdexec_extract_username_port_from_hostname () {
+
+  ### extract user and port from hostfile
+  BRDEXEC_SERVER_BACKUP="${BRDEXEC_SERVER}"
+  if [ "$(echo "${BRDEXEC_SERVER}" | grep -c "@")" -eq 1 ]; then
+    BRDEXEC_USER_SSH="$(echo "${BRDEXEC_SERVER}" | awk -F "@" '{print $1}')"
+    BRDEXEC_SERVER="$(echo "${BRDEXEC_SERVER}" | awk -F "@" '{print $2}' | awk -F ":" '{print $1}')"
+  else
+    BRDEXEC_USER_SSH="${BRDEXEC_USER_SSH}"
+  fi
+  if [ "$(echo "${BRDEXEC_SERVER_BACKUP}" | grep -c ":")" -eq 1 ]; then
+    BRDEXEC_SSH_PORT_CONNECTION="$(echo "${BRDEXEC_SERVER_BACKUP}" | awk -F ":" '{print $2}')"
+    if [ "${BRDEXEC_SSH_PORT_CONNECTION}" -eq "${BRDEXEC_SSH_PORT_CONNECTION}" 2>/dev/null ]; then
+      BRDEXEC_SSH_PORT_CONNECTION=" -p ${BRDEXEC_SSH_PORT_CONNECTION} "
+      BRDEXEC_SCP_PORT_CONNECTION=" -P ${BRDEXEC_SSH_PORT_CONNECTION} "
+    else
+      BRDEXEC_SSH_PORT_CONNECTION=""
+      BRDEXEC_SCP_PORT_CONNECTION=""
+    fi
+  fi
+  unset BRDEXEC_SERVER_BACKUP
 }
 
 ##48
