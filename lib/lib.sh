@@ -1080,6 +1080,8 @@ brdexec_variables_init () { verbose -s "brdexec_variables_init ${@}"
   if [ -z "${BRDEXEC_ERROR_BLACKLIST_FILE}" ]; then
     if [ ! -z "${BRDEXEC_TEAM_CONFIG}" ]; then
       BRDEXEC_ERROR_BLACKLIST_FILE="./teamconfigs/${BRDEXEC_TEAM_CONFIG}/broadexec_error_blacklist.conf"
+    else
+      BRDEXEC_ERROR_BLACKLIST_FILE="./conf/broadexec_error_blacklist.conf"
     fi
   fi
 
