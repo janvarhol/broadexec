@@ -3208,6 +3208,9 @@ brdexec_create_config_file () {
 ##48
 brdexec_extract_username_port_from_hostname () {
 
+  unset BRDEXEC_USER_SSH
+  unset BRDEXEC_SSH_PORT_CONNECTION
+
   ### extract user and port from hostfile
   BRDEXEC_SERVER_BACKUP="${BRDEXEC_SERVER}"
   if [ "$(echo "${BRDEXEC_SERVER}" | grep -c "@")" -eq 1 ]; then
