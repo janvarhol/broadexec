@@ -1,0 +1,7 @@
+### example proxy definition
+###
+### username@hostname:port-path to broadexec installation
+###
+### username and port could be omitted to use defaults
+
+jvarhol@192.168.56.104:22-/home/jvarhol/broadexec

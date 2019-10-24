@@ -1,0 +1,26 @@
+#!/bin/bash
+
+brdexec_proxy__brdexec_init () {
+
+  ### set default for broadexec proxy if missing
+  if [ "${BROADEXEC_PROXY}" != "yes" ] && [ "${BROADEXEC_PROXY}" != "no" ]; then
+    BROADEXEC_PROXY=yes
+  fi
+}
+
+brdexec_proxy__brdexec_before_ssh () {
+
+  ### check if there are not empty lists
+  if [ "${BRDEXEC_PROXY}" = "yes" ]; then
+    if [ -z "${BRDEXEC_PROXY_LIST}" ]; then
+      if [ -f ./etc/proxy_list ]; then
+        BRDEXEC_PROXY_LIST="./etc/proxy_list"
+      else
+        BRDEXEC_PROXY=no
+        return 0
+      fi
+    fi
+  fi
+
+  ### initiate proxy instances
+}
