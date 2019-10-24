@@ -403,7 +403,7 @@ EOF
 
       ### removing temporary file on remote host after killing ssh session
       if [ ! -z "${BRDEXEC_PROCESS_KILLED}" ]; then
-        ssh -o StrictHostKeyChecking=yes -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_USER}@${BRDEXEC_SERVER} "rm /tmp/${BRDEXEC_RUNID}.sh 2>/dev/null" 2>/dev/null
+        ssh -o StrictHostKeyChecking=yes -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_USER_SSH}@${BRDEXEC_SERVER} "rm /tmp/${BRDEXEC_RUNID}.sh 2>/dev/null" 2>/dev/null
         BRDEXEC_SSH_KILL_PID="${?}"
         ### wait for process to end
         brdexec_ssh_pid wait_for_process_to_end ${BRDEXEC_SSH_KILL_PID}
@@ -3219,7 +3219,7 @@ brdexec_extract_username_port_from_hostname () {
     BRDEXEC_USER_SSH="$(echo "${BRDEXEC_SERVER}" | awk -F "@" '{print $1}')"
     BRDEXEC_SERVER="$(echo "${BRDEXEC_SERVER}" | awk -F "@" '{print $2}' | awk -F ":" '{print $1}')"
   else
-    BRDEXEC_USER_SSH="${BRDEXEC_USER_SSH}"
+    BRDEXEC_USER_SSH="${BRDEXEC_USER}"
   fi
   if [ "$(echo "${BRDEXEC_SERVER_BACKUP}" | grep -c ":")" -eq 1 ]; then
     BRDEXEC_SSH_PORT_CONNECTION="$(echo "${BRDEXEC_SERVER_BACKUP}" | awk -F ":" '{print $2}')"
