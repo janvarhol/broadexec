@@ -1155,8 +1155,8 @@ brdexec_temp_files () { verbose -s "brdexec_temp_files ${@}"
     else
       echo "ERROR while trying to get script name"
     fi
-    BRDEXEC_REPORT_FILE="${BRDEXEC_REPORT_PATH}/broadexec_${BRDEXEC_REPORT_SCRIPT_NAME}_${BRDEXEC_START_TIME}.report"
-    BRDEXEC_REPORT_ERROR_FILE="${BRDEXEC_REPORT_PATH}/broadexec_${BRDEXEC_REPORT_SCRIPT_NAME}_${BRDEXEC_START_TIME}.report_error"
+    BRDEXEC_REPORT_FILE="${BRDEXEC_REPORT_PATH}/broadexec_${BRDEXEC_REPORT_SCRIPT_NAME}_${BRDEXEC_RUNID}.report"
+    BRDEXEC_REPORT_ERROR_FILE="${BRDEXEC_REPORT_PATH}/broadexec_${BRDEXEC_REPORT_SCRIPT_NAME}_${BRDEXEC_RUNID}.report_error"
     ### in case -g parameter is used additional list report will be created
     if [ ! -z "${BRDEXEC_GREP_DISPLAY_ONLY_SERVERS}" ]; then
       BRDEXEC_REPORT_FILE_LIST="${BRDEXEC_REPORT_FILE}_list"
