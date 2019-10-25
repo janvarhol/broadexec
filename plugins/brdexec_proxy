@@ -3,8 +3,11 @@
 brdexec_proxy__brdexec_init () {
 
   ### set default for broadexec proxy if missing
-  if [ "${BROADEXEC_PROXY}" != "yes" ] && [ "${BROADEXEC_PROXY}" != "no" ]; then
-    BROADEXEC_PROXY=yes
+  if [ "${BRDEXEC_PROXY}" != "yes" ] && [ "${BRDEXEC_PROXY}" != "no" ]; then
+    BRDEXEC_PROXY=yes
+  fi
+  if [ -z "${BRDEXEC_PROXY}" ]; then
+    BRDEXEC_PROXY=yes
   fi
 }
 
@@ -14,7 +17,7 @@ brdexec_proxy__brdexec_before_ssh () {
   if [ "${BRDEXEC_PROXY}" = "yes" ]; then
     if [ -z "${BRDEXEC_PROXY_LIST}" ]; then
       if [ -f ./etc/proxy_list ]; then
-        BRDEXEC_PROXY_LIST="./etc/proxy_list"
+        BRDEXEC_PROXY_LIST="$(cat ./etc/proxy_list | grep -v "^#" | grep -v "^$")"
       else
         BRDEXEC_PROXY=no
         return 0
@@ -23,4 +26,150 @@ brdexec_proxy__brdexec_before_ssh () {
   fi
 
   ### initiate proxy instances
+  for BRDEXEC_PROXY_ITEM in $(echo "${BRDEXEC_PROXY_LIST}"); do
+    BRDEXEC_PROXY_HOST="$(echo "${BRDEXEC_PROXY_ITEM}" | awk -F "-" '{print $1}')"
+    if [ "$(echo "${BRDEXEC_PROXY_HOST}" | grep -c "@")" -eq 1 ]; then
+      BRDEXEC_PROXY_HOST="$(echo "${BRDEXEC_PROXY_HOST}" | awk -F "@" '{print $2}')"
+    fi
+    if [ "$(echo "${BRDEXEC_PROXY_HOST}" | grep -c ":")" -eq 1 ]; then
+      BRDEXEC_PROXY_HOST="$(echo "${BRDEXEC_PROXY_HOST}" | awk -F ":" '{print $1}')"
+    fi
+    BRDEXEC_PROXY_PATH="$(echo "${BRDEXEC_PROXY_ITEM}" | awk -F "-" '{print $2}')"
+    BRDEXEC_PROXY_USER="$(echo "${BRDEXEC_PROXY_ITEM}" | awk -F "@" '{print $1}')"
+    if [ "${BRDEXEC_PROXY_USER}" = "" ]; then
+      BRDEXEC_PROXY_USER="${BRDEXEC_USER}"
+    fi
+    BRDEXEC_PROXY_PORT="$(echo "${BRDEXEC_PROXY_ITEM}" | awk -F "-" '{print $1}' | awk -F ":" '{print $2}')"
+    if [ "${BRDEXEC_PROXY_PORT}" = "" ]; then
+      BRDEXEC_PROXY_PORT=22
+    fi
+#echo "PORT $BRDEXEC_PROXY_PORT"
+    BRDEXEC_PROXY_ERROR_OUTPUT="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
+    BRDEXEC_PROXY_MAIN_OUTPUT="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
+    BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_PROXY_ERROR_OUTPUT} ${BRDEXEC_PROXY_MAIN_OUTPUT}"
+
+#    echo "echo \"${BRDEXEC_PROXY_PATH}/broadexec.sh ${BRDEXEC_PARAMETERS_BACKUP} ${BRDEXEC_SELECTED_PARAMETERS_INFO} --external --runid ${RUNID} --batch -qq\" | ssh -p ${BRDEXEC_PROXY_PORT} -o StrictHostKeyChecking=yes -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o \"ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}\" ${BRDEXEC_PROXY_USER}@${BRDEXEC_PROXY_HOST} \"cat > /tmp/${BRDEXEC_RUNID}_external.sh && chmod +x /tmp/${BRDEXEC_RUNID}_external.sh && ${BRDEXEC_RUNSHELL} /tmp/${BRDEXEC_RUNID}_external.sh; rm /tmp/${BRDEXEC_RUNID}_external.sh\" 2>>${BRDEXEC_PROXY_ERROR_OUTPUT} >> ${BRDEXEC_PROXY_MAIN_OUTPUT} &"
+
+
+    echo "${BRDEXEC_PROXY_PATH}/broadexec.sh ${BRDEXEC_PARAMETERS_BACKUP} ${BRDEXEC_SELECTED_PARAMETERS_INFO} --external --runid ${RUNID} --batch -qq" | ssh -p ${BRDEXEC_PROXY_PORT} -o StrictHostKeyChecking=yes -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_PROXY_USER}@${BRDEXEC_PROXY_HOST} "cat > /tmp/${BRDEXEC_RUNID}_external.sh && chmod +x /tmp/${BRDEXEC_RUNID}_external.sh && ${BRDEXEC_RUNSHELL} /tmp/${BRDEXEC_RUNID}_external.sh; rm /tmp/${BRDEXEC_RUNID}_external.sh" 2>>${BRDEXEC_PROXY_ERROR_OUTPUT} >> ${BRDEXEC_PROXY_MAIN_OUTPUT} &
+    BRDEXEC_PROXY_PID="${!}"
+    BRDEXEC_PROXY_PIDS+=" ${BRDEXEC_PROXY_PID}"
+#echo "PROXY initiated with PID $BRDEXEC_PROXY_PID"
+    BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]="${BRDEXEC_PROXY_MAIN_OUTPUT}"
+    BRDEXEC_PROXY_ERROR_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]="${BRDEXEC_PROXY_ERROR_OUTPUT}"
+    BRDEXEC_PROXY_HOSTNAME_ARRAY[$BRDEXEC_PROXY_PID]="${BRDEXEC_PROXY_HOST}"
+    BRDEXEC_PROXY_USER_ARRAY[$BRDEXEC_PROXY_PID]="${BRDEXEC_PROXY_USER}"
+    BRDEXEC_PROXY_PATH_ARRAY[$BRDEXEC_PROXY_PID]="${BRDEXEC_PROXY_PATH}"
+    BRDEXEC_PROXY_PORT_ARRAY[$BRDEXEC_PROXY_PID]="${BRDEXEC_PROXY_PORT}"
+  done
+
+  ### loop through proxy instances and wait until they are finished
+  BRDEXEC_START_TIME=$(date +%s)
+  local BRDEXEC_PROXY_DEATH_COUNTER="$(expr $(date +%s) - 900)" #FIXME set proper variable for timeout in config
+  local BRDEXEC_PROXY_PID_TOTAL_COUNT="$(echo ${BRDEXEC_PROXY_PIDS}) | wc -w)"
+  ### initial line of overall status
+  echo "Total: gathering data..."
+  while [ "${BRDEXEC_PROXY_DEATH_COUNTER}" -lt "${BRDEXEC_START_TIME}" ]; do
+    local BRDEXEC_PROXY_DEATH_COUNTER="$(expr $(date +%s) - 900)" #FIXME set proper variable for timeout in config
+
+    ### get total progress data
+    if [ ! -z "${BRDEXEC_CURRENT_STATS_FILE_NUM_TOTAL_SUM}" ]; then
+      tput cuu1
+
+      tput el
+      echo "Total: ${BRDEXEC_CURRENT_STATS_FILE_NUM_DONE_SUM}/${BRDEXEC_CURRENT_STATS_FILE_NUM_TOTAL_SUM}"
+
+      #reset values
+      BRDEXEC_CURRENT_STATS_FILE_NUM_DONE_SUM=0
+      BRDEXEC_CURRENT_STATS_FILE_NUM_TOTAL_SUM=0
+
+    fi
+
+    BRDEXEC_PROXY_PID_TOTAL_COUNT="$(echo ${BRDEXEC_PROXY_PIDS} | wc -w)"
+    BRDEXEC_PROXY_PID_TOTAL_FINISHED=0
+    for BRDEXEC_PROXY_PID in ${BRDEXEC_PROXY_PIDS}; do
+      if [ "${BRDEXEC_PROXY_ALREADY_FINISHED_ARRAY[$BRDEXEC_PROXY_PID]}" = "yes" ]; then
+        ((BRDEXEC_PROXY_PID_TOTAL_FINISHED++))
+      fi
+
+      ### display progress
+#echo "STATSFILE ${BRDEXEC_PROXY_STATS_FILE_ARRAY[$BRDEXEC_PROXY_PID]}"
+#cat ${BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]}
+#ls -la ${BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]}
+
+      if [ -z "${BRDEXEC_PROXY_STATS_FILE_ARRAY[$BRDEXEC_PROXY_PID]}" ]; then
+        if [ -f "${BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]}" ]; then
+          BRDEXEC_PROXY_STATS_FILE_ARRAY[$BRDEXEC_PROXY_PID]="$(cat ${BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]} | head -n 1)"
+        fi
+#echo "MAIN_OUT: ${BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]}"
+#cat ${BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]}
+#echo "::: ${BRDEXEC_PROXY_STATS_FILE_ARRAY[$BRDEXEC_PROXY_PID]}"
+#echo "ERROR ${BRDEXEC_PROXY_ERROR_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]}"
+#cat ${BRDEXEC_PROXY_ERROR_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]}
+      fi
+
+      unset BRDEXEC_CURRENT_STATS_FILE
+      unset BRDEXEC_CURRENT_STATS_FILE_PROGRESS
+      unset BRDEXEC_CURRENT_STATS_FILE_STATE
+      unset BRDEXEC_CURRENT_STATS_FILE_ERROR
+      unset BRDEXEC_CURRENT_STATS_FILE_NUM_DONE
+      unset BRDEXEC_CURRENT_STATS_FILE_NUM_TOTAL
+      if [ ! -z "${BRDEXEC_PROXY_STATS_FILE_ARRAY[$BRDEXEC_PROXY_PID]}" ]; then
+        BRDEXEC_CURRENT_STATS_FILE="$(ssh -p ${BRDEXEC_PROXY_PORT_ARRAY[$BRDEXEC_PROXY_PID]} -o StrictHostKeyChecking=yes -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_PROXY_USER_ARRAY[$BRDEXEC_PROXY_PID]}@${BRDEXEC_PROXY_HOSTNAME_ARRAY[$BRDEXEC_PROXY_PID]} "cat ${BRDEXEC_PROXY_PATH_ARRAY[$BRDEXEC_PROXY_PID]}/${BRDEXEC_PROXY_STATS_FILE_ARRAY[$BRDEXEC_PROXY_PID]}" )"
+        if [ "${?}" -ne 0 ]; then
+          tput el
+          echo "${BRDEXEC_PROXY_HOSTNAME_ARRAY[$BRDEXEC_PROXY_PID]}: SSH error"
+          BRDEXEC_CURRENT_STATS_FILE_ERROR="yes"
+        else
+          BRDEXEC_CURRENT_STATS_FILE_PROGRESS="$(echo "${BRDEXEC_CURRENT_STATS_FILE}" | grep "^PROGRESS" | awk '{print $4}')"
+          BRDEXEC_CURRENT_STATS_FILE_STATE="$(echo "${BRDEXEC_CURRENT_STATS_FILE}" | grep "^STATE" | awk '{print $2}')"
+
+          BRDEXEC_CURRENT_STATS_FILE_NUM_TOTAL="$(echo "${BRDEXEC_CURRENT_STATS_FILE}" | grep "^PROGRESS" | awk '{print $3}')"
+          ((BRDEXEC_CURRENT_STATS_FILE_NUM_TOTAL_SUM+=BRDEXEC_CURRENT_STATS_FILE_NUM_TOTAL))
+          BRDEXEC_CURRENT_STATS_FILE_NUM_DONE="$(echo "${BRDEXEC_CURRENT_STATS_FILE}" | grep "^PROGRESS" | awk '{print $2}')"
+          if [ "${BRDEXEC_CURRENT_STATS_FILE_STATE}" = "FINISHED" ]; then
+            BRDEXEC_CURRENT_STATS_FILE_NUM_DONE="${BRDEXEC_CURRENT_STATS_FILE_NUM_TOTAL}"
+          fi
+          ((BRDEXEC_CURRENT_STATS_FILE_NUM_DONE_SUM+=BRDEXEC_CURRENT_STATS_FILE_NUM_DONE))
+      #if [ "$(echo "$BRDEXEC_CURRENT_STATS_FILE" | grep -c "^ssh:")" -gt 0 ]; then
+      #  echo "${BRDEXEC_PROXY_HOSTNAME_ARRAY[$BRDEXEC_PROXY_PID]}: SSH error"
+      #else
+          tput el
+          echo "${BRDEXEC_PROXY_HOSTNAME_ARRAY[$BRDEXEC_PROXY_PID]}: ${BRDEXEC_CURRENT_STATS_FILE_PROGRESS}"
+        fi
+      else
+        tput el
+        echo "${BRDEXEC_PROXY_HOSTNAME_ARRAY[$BRDEXEC_PROXY_PID]}: no data received"
+      fi
+
+    done
+
+    BRDEXEC_PROXY_RUN_FINISHED=0
+    for BRDEXEC_PROXY_PID in ${BRDEXEC_PROXY_PIDS}; do
+      if [ "${BRDEXEC_CURRENT_STATS_FILE_STATE}" = "FINISHED" ] || [ "${BRDEXEC_CURRENT_STATS_FILE_STATE}" = "INTERRUPTED" ] || [ "${BRDEXEC_CURRENT_STATS_FILE_ERROR}" = "yes" ]; then
+      ((BRDEXEC_PROXY_RUN_FINISHED++))
+      #if [ "${BRDEXEC_PROXY_ALREADY_FINISHED_ARRAY[$BRDEXEC_PROXY_PID]}" != "yes" ]; then
+        #ps -p ${BRDEXEC_PROXY_PID} >/dev/null
+        #if [ "$?" -ne 0 ]; then
+        #  BRDEXEC_PROXY_ALREADY_FINISHED_ARRAY[$BRDEXEC_PROXY_PID]="yes"
+        #fi
+      #fi
+      fi
+    done
+
+
+    if [ "${BRDEXEC_PROXY_RUN_FINISHED}" -eq "${BRDEXEC_PROXY_PID_TOTAL_COUNT}" ]; then
+      BRDEXEC_DEATH_COUNTER=${BRDEXEC_START_TIME}
+      break
+    fi
+
+    ### reset display position
+    for useless_counter in $(seq $BRDEXEC_PROXY_PID_TOTAL_COUNT); do
+      tput cuu1
+#echo >/dev/null
+    done
+
+    ### easing demand for CPU in compatible way
+    sleep 0.2 2>/dev/null || sleep 1
+  done
 }

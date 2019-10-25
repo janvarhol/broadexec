@@ -128,8 +128,6 @@ if [ ! -z "${BRDEXEC_RUN_TEST_SCENARIO}" ]; then
 fi
 
 ### Select hostlist from -h option, read path from conf, if non existing serverlist selected, give options to choose
-verbose 220 2
-verbose 221 2
 brdexec_hosts get_list_of_hostfiles
 
 ### Solving issue of missing hosts parameter
@@ -170,7 +168,8 @@ brdexec_create_hosts_list_based_on_filter
 
 ### check missing known hosts
 #if [ -z "${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY}" ]; then
-brdexec_repair_missing_known_hosts
+#FIXME fix missing known hosts in case there is problem connecting
+#brdexec_repair_missing_known_hosts
 #fi
 
 if [ -z "${BRDEXEC_BATCH_MODE}" ]; then

@@ -607,16 +607,19 @@ brdexec_hosts () {
 
       ### get list of custom hostsfiles
       #2233 FIXME
+      verbose 222 2
       BRDEXEC_LIST_OF_CUSTOM_HOSTSFILES="$(ls -1 ${BRDEXEC_DEFAULT_HOSTS_FOLDER} 2>/dev/null | grep -v ^hosts$ | grep -v ^${BRDEXEC_TEAM_CONFIG}$ | tr '\n' ' ')"
       BRDEXEC_LIST_OF_SERVERLISTS="${BRDEXEC_LIST_OF_TEAM_HOSTSFILES} ${BRDEXEC_LIST_OF_CUSTOM_HOSTSFILES}"
 
       ### check if there are some hostslists
+      verbose 223 2
       if [ "$(echo "${BRDEXEC_LIST_OF_SERVERLISTS}" | wc -l)" -lt 1 ]; then
         display_error "181" 1
       fi
 
       ### create temporary hostlist from -H option
       if [ "${BRDEXEC_SERVERLIST_CHOSEN}" = "" ] && [ ! -z "${BRDEXEC_HOSTS}" ] ; then
+        verbose 224 2
         BRDEXEC_SERVERLIST_CHOSEN="$(mktemp)"
         BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_SERVERLIST_CHOSEN}"
         for BRDEXEC_INPUT_HOST in $(echo "${BRDEXEC_HOSTS}" | sed -e 's/,/\ /g'); do
@@ -829,7 +832,8 @@ brdexec_getopts_main () { verbose -s "brdexec_getopts_main ${@}"
             -* | "")
               BRDEXEC_EXTERNAL="yes"; verbose 2103 1 ;;
             *)
-              BRDEXEC_STATS_FILE="${1}"; shift ;;
+              BRDEXEC_STATS_FILE="${1}";
+              BRDEXEC_EXTERNAL_STOP_="stop"; shift ;;
           esac ;;
 
         --runid) shift
@@ -1015,9 +1019,11 @@ brdexec_variables_init () { verbose -s "brdexec_variables_init ${@}"
   ### here first invocation ends before creating any temporary files
   if [ ! -z "${BRDEXEC_EXTERNAL}" ]; then
     echo "${BRDEXEC_STATS_FILE}"
-    BRDEXEC_PARAMETERS_BACKUP="$(echo "${@}" | sed 's/--external//')"
-    ./broadexec.sh ${BRDEXEC_PARAMETERS_BACKUP} --external ${BRDEXEC_STATS_FILE} --runid ${RUNID} -qq &
-    exit
+    BRDEXEC_EXTERNAL_PARAMETERS_BACKUP="$(echo "${@}" | sed 's/--external//')"
+    if [ "${BRDEXEC_EXTERNAL_STOP}" != "stop" ]; then
+      ./broadexec.sh ${BRDEXEC_EXTERNAL_PARAMETERS_BACKUP} --external ${BRDEXEC_STATS_FILE} --runid ${RUNID} -qq &
+      exit
+    fi
   fi
 
   ### reset runid in case it is provided via option
@@ -1195,6 +1201,7 @@ brdexec_temp_files () { verbose -s "brdexec_temp_files ${@}"
 brdexec_display_output_until_timeout () { verbose -s "brdexec_display_output_until_timeout ${@}"
 
   ### let's initialize death counter and count total number of running pids
+  #FIXME next line is now probably useless
   local BRDEXEC_DEATH_COUNTER="$(expr $(date +%s) - ${BRDEXEC_SCRIPT_RUN_TIMEOUT})"
   local BRDEXEC_SSH_PID_TOTAL_COUNT="$(echo ${BRDEXEC_SSH_PIDS}) | wc -w)"
 
