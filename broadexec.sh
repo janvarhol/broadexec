@@ -170,7 +170,7 @@ brdexec_create_hosts_list_based_on_filter
 
 ### check missing known hosts
 #if [ -z "${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY}" ]; then
-brdexec_repair_missing_known_hosts
+#brdexec_repair_missing_known_hosts
 #fi
 
 if [ -z "${BRDEXEC_BATCH_MODE}" ]; then
