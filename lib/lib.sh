@@ -303,7 +303,7 @@ brdexec_script_menu_selection () { verbose -s "brdexec_script_menu_selection ${@
           brdexec_display_output "${BRDEXEC_SCRIPT_SELECT_ID}) ${BRDEXEC_PREDEFINED_SCRIPTS_ITEM} was selected\n" 255
         fi
 
-        brdexec_display_output "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM} was selected.\n" 255
+        #brdexec_display_output "${BRDEXEC_PREDEFINED_SCRIPTS_ITEM} was selected.\n" 255
 
       fi
 
@@ -2059,65 +2059,65 @@ brdexec_display_error_log () { verbose -s "brdexec_display_error_log ${@}"
 }
 
 #305
-brdexec_repair_missing_known_hosts () { verbose -s "brdexec_repair_missing_known_hosts ${@}"
+brdexec_repair_missing_known_hosts () {
 
-  for BRDEXEX_MISSING_KNOWN_HOSTS_SERVER in ${BRDEXEC_SERVERLIST_LOOP}; do
+  #FIXME make better standards... :/
+  BRDEXEC_SERVER="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
+  brdexec_extract_username_port_from_hostname
+  BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="${BRDEXEC_SERVER}"
 
-    ### reset variabe for checking default hosts file
-    unset BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME
+  ### reset variabe for checking default hosts file
+  unset BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME
 
-    ### checking hostname against broadexec hosts file
-    if [ "$(grep -ic "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ${BRDEXEC_HOSTS_FILE} 2>/dev/null)" -gt 0 ] 2>/dev/null; then
-      BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
-      BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="$(grep -i "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ${BRDEXEC_HOSTS_FILE} | head -n 1 | awk '{print $1}')"
-    fi
+  ### checking hostname against broadexec hosts file
+  if [ "$(grep -ic "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ${BRDEXEC_HOSTS_FILE} 2>/dev/null)" -gt 0 ] 2>/dev/null; then
+    BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
+    BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="$(grep -i "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ${BRDEXEC_HOSTS_FILE} | head -n 1 | awk '{print $1}')"
+  fi
 
+  if [ "${1}" = "shout" ]; then
+    brdexec_display_output "Checking host ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" 1
+  fi
+
+  ### checking if current host is missing from known hosts
+  if [ "$(awk '{print $1}' ~/.ssh/known_hosts 2>/dev/null | grep -c ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER})" -eq 0 ]; then
     if [ "${1}" = "shout" ]; then
-      brdexec_display_output "Checking host ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" 1
+      brdexec_display_output "Executing keyscan on host ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" 1
     fi
+    ssh-keyscan -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEC_SSH_PORT_CONNECTION} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} >/dev/null 2>&1
+    if [ "$?" -eq 0 ]; then
 
-    ### checking if current host is missing from known hosts
-    if [ "$(awk '{print $1}' ~/.ssh/known_hosts 2>/dev/null | grep -c ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER})" -eq 0 ]; then
-      if [ "${1}" = "shout" ]; then
-        brdexec_display_output "Executing keyscan on host ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" 1
-      fi
-      ssh-keyscan -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} >/dev/null 2>&1
-      if [ "$?" -eq 0 ]; then
+      ### adding keys to knownhosts
+      brdexec_display_output "  Adding ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} to ~/.ssh/known_hosts" 2
+      touch ${BRDEXEC_KNOWN_HOSTS_MESSAGE}
+      ssh-keyscan -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEC_SSH_PORT_CONNECTION} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} 2>/dev/null >> ~/.ssh/known_hosts
 
-        ### adding keys to knownhosts
-        brdexec_display_output "  Adding IP ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} of ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} to ~/.ssh/known_hosts" 2
-        ssh-keyscan -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} 2>/dev/null | head -n 1 >> ~/.ssh/known_hosts
+      ### NOTE: NO checking, error will be sorted via broadexec error collection
 
-        ### checking if it worked
-        ssh -o "StrictHostKeyChecking=yes" -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_USER}@${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} uptime 2>&1 >/dev/null
-        if [ "$?" -ne 0 ]; then
-          brdexec_display_output "After adding ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} to ~/.ssh/known_hosts there is still problem connecting to server. Please check manually." 1
-        fi
+      ### add also hostname with IP address
+      if [ ! -z "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" ]; then
+        if [ "$(grep -c ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ~/.ssh/known_hosts)" -gt 0 ]; then
+          brdexec_display_output "  Adding ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} to ~/.ssh/known_hosts" 2
+          touch ${BRDEXEC_KNOWN_HOSTS_MESSAGE}
+          BRDEXEX_MISSING_KNOWN_HOSTS_TEMP="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
+          BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP}"
+          BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER="$(grep -n ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ~/.ssh/known_hosts | head -n 1 | awk -F ":" '{print $1}')"
 
-        ### add also hostname with IP address
-        if [ ! -z "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" ]; then
-          if [ "$(grep -c ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ~/.ssh/known_hosts)" -gt 0 ]; then
-            brdexec_display_output "  Adding hostname ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} to ~/.ssh/known_hosts" 2
-            BRDEXEX_MISSING_KNOWN_HOSTS_TEMP="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-            BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP}"
-            BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER="$(grep -n ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ~/.ssh/known_hosts | head -n 1 | awk -F ":" '{print $1}')"
-
-            ### I am very proud of the following line!
-            awk -v linenumber="${BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER}" -v hostname="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" '{if(NR==linenumber){$1=$1","hostname; print}else{print}}' ~/.ssh/known_hosts > ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP} && mv ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP} ~/.ssh/known_hosts
-          fi
-        fi
-      else
-        log "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} problem getting fingerprint information" 1
-        if [ "${1}" = "shout" ]; then
-          brdexec_display_output "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} problem getting fingerprint information" 1
+          ### I am very proud of the following line, but don't remember why!
+          awk -v linenumber="${BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER}" -v hostname="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" '{if(NR==linenumber){$1=$1","hostname; print}else{print}}' ~/.ssh/known_hosts > ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP} && mv ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP} ~/.ssh/known_hosts
         fi
       fi
     else
+      log "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} problem getting fingerprint information" 1
       if [ "${1}" = "shout" ]; then
-        brdexec_display_output "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} OK"
+        brdexec_display_output "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} problem getting fingerprint information" 1
       fi
     fi
-  done
+  else
+    if [ "${1}" = "shout" ]; then
+      brdexec_display_output "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} OK"
+    fi
+  fi
 }
 
 #306
