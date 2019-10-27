@@ -963,6 +963,19 @@ brdexec_getopts_main () { verbose -s "brdexec_getopts_main ${@}"
             *) ;;
           esac ;;
 
+        --proxy) shift
+          case ${1} in
+            -* | "")
+              brdexec_usage ;;
+            *)
+              if [ "${1}" = "yes" 2>/dev/null ] || [ "${1}" = "no" 2>/dev/null ]; then
+                BRDEXEC_PROXY="${1}"
+                shift
+              else
+                brdexec_usage
+              fi;;
+          esac ;;
+
         -? | --help) shift
           case ${1} in
             -* | "")
