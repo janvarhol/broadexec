@@ -1,0 +1,7 @@
+message 001: normal run with hostlist and script provided by parameters. Uptime should be displayed from all hosts in hostfile.
+
+broadexec_parameters -h TESTING_SCENARIO_FOLDER/hosts/one_host -s TESTING_SCENARIO_FOLDER/scripts/basic.sh --proxy no -q
+
+expect_start
+host1 test
+expect_end
