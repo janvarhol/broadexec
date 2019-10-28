@@ -3,5 +3,5 @@ message 002: having the same host more than once in hostlist
 broadexec_parameters -h TESTING_SCENARIO_FOLDER/hosts/duplicate_host -s TESTING_SCENARIO_FOLDER/scripts/basic.sh --proxy no -q
 
 expect_start
-host1 test
+brdexec_test_host1 test
 expect_end
