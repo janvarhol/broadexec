@@ -1,6 +1,8 @@
-folder etc/selftest/broadexec_dev
+#folder etc/selftest/broadexec_dev
 
-scenario 001_basic_onehost.test
-scenario 002_basic_duplicate_host.test
-scenario 003_basic_human_readable.test
-scenario 004_basic_specify_user_parameter.test
+include_all_from etc/selftest/broadexec_dev
+
+#scenario 001_basic_onehost.test
+#scenario 002_basic_duplicate_host.test
+#scenario 003_basic_human_readable.test
+#scenario 004_basic_specify_user_parameter.test

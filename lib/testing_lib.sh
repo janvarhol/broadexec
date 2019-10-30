@@ -52,14 +52,44 @@ testing_load_scenario () {
   #fi
 
   ### load scenario files list
-  TESTING_SCENARIO_LIST="$(cat "${TESTING_SCENARIO_FILE}" | grep "^scenario " | awk '{print $2}')"
-  TESTING_SCENARIO_FOLDER="$(cat "${TESTING_SCENARIO_FILE}" | grep "folder " | awk '{print $2}')"
-  if [ "${TESTING_SCENARIO_FOLDER}" != "" ]; then
-    TESTING_SCENARIO_LIST="$(echo "${TESTING_SCENARIO_LIST}" | sed 's,'"^"','"$TESTING_SCENARIO_FOLDER/",'g')"
-  fi
+  while read TESTING_SCENARIO_FILE_LINE; do
+
+    TESTING_SCENARIO_FILE_KEYWORD="$(echo "${TESTING_SCENARIO_FILE_LINE}" | awk '{print $1}')"
+    TESTING_SCENARIO_FILE_PARAMETER="$(echo "${TESTING_SCENARIO_FILE_LINE}" | awk '{print $2}')"
+
+    case ${TESTING_SCENARIO_FILE_KEYWORD} in
+      folder)
+        TESTING_SCENARIO_FOLDER="${TESTING_SCENARIO_FILE_PARAMETER}" ;;
+
+      scenario)
+        if [ "${TESTING_SCENARIO_FOLDER}" != "" ]; then
+          TESTING_SCENARIO_LIST+=" ${TESTING_SCENARIO_FOLDER}TESTING_BRDEXEC_SEPARATOR${TESTING_SCENARIO_FOLDER}/${TESTING_SCENARIO_FILE_PARAMETER}"
+        else
+          TESTING_SCENARIO_LIST+=" $(echo "${TESTING_SCENARIO_FILE_PARAMETER}" | sed 's|.*/||' )TESTING_BRDEXEC_SEPARATOR${TESTING_SCENARIO_FILE_PARAMETER}"
+        fi ;;
+
+      include_all_from)
+        for TESTING_SCENARIO_INCLUDE_ALL_ITEM in $(ls -1 "${TESTING_SCENARIO_FILE_PARAMETER}" | grep "test$"); do
+          TESTING_SCENARIO_LIST+=" ${TESTING_SCENARIO_FILE_PARAMETER}TESTING_BRDEXEC_SEPARATOR${TESTING_SCENARIO_FILE_PARAMETER}/${TESTING_SCENARIO_INCLUDE_ALL_ITEM}"
+        done ;;
+    esac
+
+    #if [ "$(echo "${TESTING_SCENARIO_FILE_LINE}" | grep -c "^folder ")" -eq 1 ]; then
+    #  TESTING_SCENARIO_FOLDER="$(echo "${TESTING_SCENARIO_FILE_LINE}" | awk '{print $2}')"
+    #elif [ "$(echo "${TESTING_SCENARIO_FILE_LINE}" | grep -c "^scenario ")" -eq 1 ]; then
+    #  TESTING_SCENARIO_LIST+="$(echo "${TESTING_SCENARIO_FILE_LINE}" | awk '{print $2}')"
+    #fi
+
+    #TESTING_SCENARIO_LIST="$(cat "${TESTING_SCENARIO_FILE}" | grep "^scenario " | awk '{print $2}')"
+    #TESTING_SCENARIO_FOLDER="$(cat "${TESTING_SCENARIO_FILE}" | grep "folder " | awk '{print $2}')"
+    #if [ "${TESTING_SCENARIO_FOLDER}" != "" ]; then
+    #  TESTING_SCENARIO_LIST="$(echo "${TESTING_SCENARIO_LIST}" | sed 's,'"^"','"$TESTING_SCENARIO_FOLDER/",'g')"
+    #fi
+  done < "${TESTING_SCENARIO_FILE}"
 
   ### check scenario files
-  for TESTING_SCENARIO_FILE in ${TESTING_SCENARIO_LIST}; do
+  for TESTING_SCENARIO_FILE_ITEM in ${TESTING_SCENARIO_LIST}; do
+    TESTING_SCENARIO_FILE="$(echo "${TESTING_SCENARIO_FILE_ITEM}" | awk -F "TESTING_BRDEXEC_SEPARATOR" '{print $2}')"
     if [ ! -f "${TESTING_SCENARIO_FILE}" ]; then
       echo "Scenario file ${TESTING_SCENARIO_FILE} is missing"
       TESTING_SCENARIO_FILE_ERROR="YES"
@@ -90,8 +120,9 @@ testing_execute_scenarios () {
     . ./conf/selftest.conf
   fi
 
-  for TESTING_SCENARIO_FILE in ${TESTING_SCENARIO_LIST}; do
-
+  for TESTING_SCENARIO_FILE_ITEM in ${TESTING_SCENARIO_LIST}; do
+    TESTING_SCENARIO_FILE="$(echo "${TESTING_SCENARIO_FILE_ITEM}" | awk -F "TESTING_BRDEXEC_SEPARATOR" '{print $2}')"
+    TESTING_SCENARIO_FOLDER="$(echo "${TESTING_SCENARIO_FILE_ITEM}" | awk -F "TESTING_BRDEXEC_SEPARATOR" '{print $1}')"
     ### load scenario data
     TESTING_SCENARIO_FILE_MESSAGE="$(cat "${TESTING_SCENARIO_FILE}" | grep "^message " | tail -n 1 | cut -d " " -f2-)"
     TESTING_SCENARIO_PARAMETERS="$(cat "${TESTING_SCENARIO_FILE}" | grep "^broadexec_parameters " | tail -n 1 | cut -d " " -f2-)"
