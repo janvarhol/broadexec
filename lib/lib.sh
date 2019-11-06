@@ -946,10 +946,18 @@ brdexec_getopts_main () { verbose -s "brdexec_getopts_main ${@}"
         --run-test-scenario) shift
           case ${1} in
             -* | "")
-              echo "ERROR"; exit 1; shift ;;
+              brdexec_usage ;;
             *)
               BRDEXEC_RUN_TEST_SCENARIO="yes"
               TESTING_SCENARIO_FILE="${1}"; shift ;;
+          esac ;;
+
+        --githook) shift
+          case ${1} in
+            -* | "")
+              BRDEXEC_TESTING_GITHOOK=true ;;
+            *)
+              brdexec_usage ;;
           esac ;;
 
         --version)

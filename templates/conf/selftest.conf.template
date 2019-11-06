@@ -1,0 +1,7 @@
+### this is template for matching default broadexec selftest to your environment
+### you don't need this unless you are developing broadexec or sharing
+## development of your scripts and using broadexec test library
+
+BRDEXEC_TEST_HOST[1]="yourhost"
+BRDEXEC_TEST_HOST[2]="youranotherhost"
+#etc
