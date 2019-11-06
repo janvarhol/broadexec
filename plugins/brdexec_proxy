@@ -173,3 +173,41 @@ brdexec_proxy__brdexec_before_ssh () {
     sleep 0.2 2>/dev/null || sleep 1
   done
 }
+
+brdexec_proxy__brdexec_display_main_output () {
+
+  for BRDEXEC_PROXY_PID in ${BRDEXEC_PROXY_PIDS}; do
+    unset BRDEXEC_PROXY_OUTPUT_REPORT
+    BRDEXEC_PROXY_OUTPUT_REPORT="$(cat ${BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]} | grep "^REPORT_FILE" | awk '{print $2}')"
+#echo "OUT $BRDEXEC_PROXY_OUTPUT_REPORT ${BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]}"
+    if [ ! -z "${BRDEXEC_PROXY_OUTPUT_REPORT}" ]; then
+      # i know, genius var name :/
+      BRDEXEC_PROXY_OUTPUT_REPORT_OUTPUT="$(ssh -p ${BRDEXEC_PROXY_PORT_ARRAY[$BRDEXEC_PROXY_PID]} -o StrictHostKeyChecking=yes -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_PROXY_USER_ARRAY[$BRDEXEC_PROXY_PID]}@${BRDEXEC_PROXY_HOSTNAME_ARRAY[$BRDEXEC_PROXY_PID]} "cat ${BRDEXEC_PROXY_PATH_ARRAY[$BRDEXEC_PROXY_PID]}/${BRDEXEC_PROXY_OUTPUT_REPORT}")"
+      if [ "${?}" -eq 0 ]; then
+        if [ ! -z "${BRDEXEC_PROXY_OUTPUT_REPORT_OUTPUT}" ]; then
+          echo -e "${BRDEXEC_PROXY_OUTPUT_REPORT_OUTPUT}"
+        fi
+      fi
+    fi
+
+#echo "PID $BRDEXEC_PROXY_PID"
+#    echo "${BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]}"
+#cat ${BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]}
+  done
+}
+
+brdexec_proxy__brdexec_generate_error_log () {
+
+  for BRDEXEC_PROXY_PID in ${BRDEXEC_PROXY_PIDS}; do
+    unset BRDEXEC_PROXY_ERROR_REPORT
+    BRDEXEC_PROXY_ERROR_REPORT="$(cat ${BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]} | grep "^REPORT_ERROR" | awk '{print $2}')"
+    if [ ! -z "${BRDEXEC_PROXY_ERROR_REPORT}" ]; then
+      BRDEXEC_PROXY_ERROR_REPORT_OUTPUT="$(ssh -p ${BRDEXEC_PROXY_PORT_ARRAY[$BRDEXEC_PROXY_PID]} -o StrictHostKeyChecking=yes -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_PROXY_USER_ARRAY[$BRDEXEC_PROXY_PID]}@${BRDEXEC_PROXY_HOSTNAME_ARRAY[$BRDEXEC_PROXY_PID]} "cat ${BRDEXEC_PROXY_PATH_ARRAY[$BRDEXEC_PROXY_PID]}/${BRDEXEC_PROXY_ERROR_REPORT}" )"
+      if [ "${?}" -eq 0 ]; then
+        if [ ! -z "${BRDEXEC_PROXY_ERROR_REPORT_OUTPUT}" ]; then
+          echo "${BRDEXEC_PROXY_ERROR_REPORT_OUTPUT}" >> ${BRDEXEC_MAIN_ERROR_CURLOG}
+        fi
+      fi
+    fi
+  done
+}

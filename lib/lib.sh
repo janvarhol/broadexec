@@ -448,28 +448,28 @@ EOF
   fi
 }
 
-#15
-brdexec_wait_for_pids_to_finish () { verbose -s "brdexec_wait_for_pids_to_finish ${@}"
-
-  ### count timeouts from this moment
-  BRDEXEC_START_TIME=$(date +%s)
-
-  ### initialize report file in case this is normal run
-  if [ -z "${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY}" ]; then
-    brdexec_temp_files create_report
-  fi
-
-  ### wait for all the answers or until timeout and display output as it is coming
-  brdexec_display_output_until_timeout
-
-  ### checking what had timed out and sorting it out
-  brdexec_timeouted
-
-  ### cleanup main output files
-  for BRDEXEC_SSH_PID in ${BRDEXEC_SSH_PIDS}; do
-    brdexec_temp_files remove_main_output
-  done
-}
+##15
+#brdexec_wait_for_pids_to_finish () { verbose -s "brdexec_wait_for_pids_to_finish ${@}"
+#
+#  ### count timeouts from this moment
+#  BRDEXEC_START_TIME=$(date +%s)
+#
+#  ### initialize report file in case this is normal run
+#  if [ -z "${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY}" ]; then
+#    brdexec_temp_files create_report
+#  fi
+#
+#  ### wait for all the answers or until timeout and display output as it is coming
+#  brdexec_display_output_until_timeout
+#
+#  ### checking what had timed out and sorting it out
+#  brdexec_timeouted
+#
+#  ### cleanup main output files
+#  for BRDEXEC_SSH_PID in ${BRDEXEC_SSH_PIDS}; do
+#    brdexec_temp_files remove_main_output
+#  done
+#}
 
 #16
 script_specific () {

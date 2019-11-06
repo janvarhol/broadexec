@@ -234,9 +234,33 @@ if [ ! -z "${BRDEXEC_SERVERLIST_FILTER}" ]; then
 fi
 
 ### Check running pids and connection errors
-brdexec_wait_for_pids_to_finish
+#brdexec_wait_for_pids_to_finish
+
+### count timeouts from this moment
+BRDEXEC_START_TIME=$(date +%s)
+
+### initialize report file in case this is normal run
+if [ -z "${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY}" ]; then
+  brdexec_temp_files create_report
+fi
+
+### wait for all the answers or until timeout and display output as it is coming
+brdexec_display_output_until_timeout
+
+brdexec_execute_plugin_hooks brdexec_display_main_output
+
+### checking what had timed out and sorting it out
+brdexec_timeouted
+
+### cleanup main output files
+for BRDEXEC_SSH_PID in ${BRDEXEC_SSH_PIDS}; do
+  brdexec_temp_files remove_main_output
+done
+
+
 ### Generate error log
 brdexec_generate_error_log
+brdexec_execute_plugin_hooks brdexec_generate_error_log
 ### Display error log
 brdexec_display_error_log
 
