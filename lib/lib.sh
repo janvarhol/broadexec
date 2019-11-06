@@ -1652,14 +1652,23 @@ brdexec_make_temporary_script () {
     BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_SCRIPT_EMBEDED}"
     while read BRDEXEC_SCRIPT_EMBEDED_LINE
     do
-      if [ "$(echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" | grep -c ^BRDEXEC_)" -eq 1 ]; then
-        while read BRDEXEC_SCRIPT_SUPPORTED_VARIABLE
-        do
-          if [ "$(echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" | awk -F "=" '{print $1}')" = "$(echo "${BRDEXEC_SCRIPT_SUPPORTED_VARIABLE}" | awk -F "=" '{print $1}')" ]; then
-            echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" > ${BRDEXEC_SCRIPT_EMBEDED}
-            . ${BRDEXEC_SCRIPT_EMBEDED}
-          fi
-        done < ./etc/enhanced_script_supported_variables.db
+      if [ "$(echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" | grep -c ^BRDEXEC_ | awk -F "=" '{print $1}')" -eq 1 ]; then
+
+        unset BRDEXEC_EMBEDED_VAR
+        BRDEXEC_EMBEDED_VAR="$(echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" | awk -F "=" '{print $1}')"
+        if [ "$(grep -wc "^${BRDEXEC_EMBEDED_VAR}$" ./etc/enhanced_script_supported_variables.db)" -eq 1 ]; then
+          #FIXME secure the line loaded better
+          echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" > ${BRDEXEC_SCRIPT_EMBEDED}
+          . ${BRDEXEC_SCRIPT_EMBEDED}
+        fi
+
+        #while read BRDEXEC_SCRIPT_SUPPORTED_VARIABLE
+        #do
+        #  if [ "$(echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" | awk -F "=" '{print $1}')" = "$(echo "${BRDEXEC_SCRIPT_SUPPORTED_VARIABLE}" | awk -F "=" '{print $1}')" ]; then
+        #    echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" > ${BRDEXEC_SCRIPT_EMBEDED}
+        #    . ${BRDEXEC_SCRIPT_EMBEDED}
+        #  fi
+        #done < ./etc/enhanced_script_supported_variables.db
       fi
     done < ${BRDEXEC_TMP_SCRIPT}
     rm ${BRDEXEC_SCRIPT_EMBEDED}
