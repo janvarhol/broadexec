@@ -2103,6 +2103,10 @@ brdexec_repair_missing_known_hosts () {
   if [ "$(grep -ic "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ${BRDEXEC_HOSTS_FILE} 2>/dev/null)" -gt 0 ] 2>/dev/null; then
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="$(grep -i "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ${BRDEXEC_HOSTS_FILE} | head -n 1 | awk '{print $1}')"
+  ### or against ~/.ssh/config
+  elif [ "$(grep -ic "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ~/.ssh/config 2>/dev/null)" -gt 0 ] 2>/dev/null; then
+    BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
+    BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="$(grep -iA2 "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ~/.ssh/config | grep Hostname | awk '{print $2}' | head -n 1)"
   fi
 
   if [ "${1}" = "shout" ]; then
@@ -2114,15 +2118,12 @@ brdexec_repair_missing_known_hosts () {
     if [ "${1}" = "shout" ]; then
       brdexec_display_output "Executing keyscan on host ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" 1
     fi
-    ssh-keyscan -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEC_SSH_PORT_CONNECTION} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} >/dev/null 2>&1
-    if [ "$?" -eq 0 ]; then
+    if [ "$(ssh-keyscan -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEC_SSH_PORT_CONNECTION} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} 2>/dev/null | wc -l)" -ne 0 ]; then
 
       ### adding keys to knownhosts
       brdexec_display_output "  Adding ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} to ~/.ssh/known_hosts" 2
       touch ${BRDEXEC_KNOWN_HOSTS_MESSAGE}
       ssh-keyscan -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEC_SSH_PORT_CONNECTION} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} 2>/dev/null >> ~/.ssh/known_hosts
-
-      ### NOTE: NO checking, error will be sorted via broadexec error collection
 
       ### add also hostname with IP address
       if [ ! -z "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" ]; then
@@ -2134,6 +2135,7 @@ brdexec_repair_missing_known_hosts () {
           BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER="$(grep -n ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ~/.ssh/known_hosts | head -n 1 | awk -F ":" '{print $1}')"
 
           ### I am very proud of the following line, but don't remember why!
+	  ### after further investigation... this line prevents quick and easy paralelization... 
           awk -v linenumber="${BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER}" -v hostname="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" '{if(NR==linenumber){$1=$1","hostname; print}else{print}}' ~/.ssh/known_hosts > ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP} && mv ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP} ~/.ssh/known_hosts
         fi
       fi
