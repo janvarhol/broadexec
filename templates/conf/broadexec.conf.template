@@ -85,6 +85,9 @@ BRDEXEC_PROCESS_KILL_TIMEOUT=1
 ### timeout for wait after CTRL+C command
 BRDEXEC_CTRLC_PROCESS_KILL_TIMEOUT=2
 
+### number of retries to check lock file for known hosts, default is 200
+BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER_MAX=200
+
 ##################
 #### SETTINGS ####
 ##################

@@ -1137,6 +1137,12 @@ brdexec_variables_init () { verbose -s "brdexec_variables_init ${@}"
     BRDEXEC_HUMAN_READABLE_REPORT=yes
   fi
 
+  if [ -z "${BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER_MAX}" ]; then
+    BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER_MAX=200
+  elif [ ! "${BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER_MAX}" -eq "${BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER_MAX}" 2>/dev/null ]; then
+    BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER_MAX=200
+  fi
+
   ### Loading default as defined option if no script parameter is selected
   brdexec_scripts check_script_file_from_parameter_input
 
@@ -2096,7 +2102,7 @@ brdexec_repair_missing_known_hosts () {
   brdexec_extract_username_port_from_hostname
   BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="${BRDEXEC_SERVER}"
 
-  ### reset variabe for checking default hosts file
+  ### reset variable for checking default hosts file
   unset BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME
 
   ### checking hostname against broadexec hosts file
@@ -2135,8 +2141,23 @@ brdexec_repair_missing_known_hosts () {
           BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER="$(grep -n ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ~/.ssh/known_hosts | head -n 1 | awk -F ":" '{print $1}')"
 
           ### I am very proud of the following line, but don't remember why!
-	  ### after further investigation... this line prevents quick and easy paralelization... 
+	  if [ ! -f known_hosts_lock_file ]; then
+	    touch known_hosts_lock_file
+	  else
+	    local BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER=0
+            while [ -f known_hosts_lock_file ]; do
+              sleep 0.1 2>/dev/null || sleep 1
+	      ((BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER+=1))
+	      if [ "${BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER}" -gt "${BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER_MAX}" ]; then
+		log "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} Unable to obtain lock for known hosts lockfile" 1
+		brdexec_display_output "  Warning: Unable to obtain lock when adding ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} to the known hosts" 2
+		return 1
+	      fi
+	    done
+	    touch known_hosts_lock_file
+	  fi
           awk -v linenumber="${BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER}" -v hostname="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" '{if(NR==linenumber){$1=$1","hostname; print}else{print}}' ~/.ssh/known_hosts > ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP} && mv ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP} ~/.ssh/known_hosts
+	  rm -f known_hosts_lock_file
         fi
       fi
     else
