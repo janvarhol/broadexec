@@ -2331,6 +2331,17 @@ brdexec_interruption_ctrl_c () { verbose -s "brdexec_interruption_ctrl_c ${@}"
     done
   fi
 
+  ### Killing hanged known hosts pids
+  for BRDEXEC_KNOWN_HOSTS_PID in ${BRDEXEC_KNOWN_HOSTS_PIDS}; do
+    ps -p ${BRDEXEC_KNOWN_HOSTS_PID} >/dev/null
+    disown ${BRDEXEC_KNOWN_HOSTS_PID}
+    kill -9 ${BRDEXEC_KNOWN_HOSTS_PID} >/dev/null 2>&1
+  done
+  ### Removing lock file
+  if [ -e "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file" ]; then
+    rm -f "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file"
+  fi
+
   ### Removing any other temp files
   if [ "${BRDEXEC_EXIT_IN_PROGRESS}" != "yes" ]; then
     echo -e "Removing temporary files      "

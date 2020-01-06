@@ -173,6 +173,7 @@ BRDEXEC_KNOWN_HOSTS_MESSAGE="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
 rm "${BRDEXEC_KNOWN_HOSTS_MESSAGE}"
 for BRDEXEX_MISSING_KNOWN_HOSTS_SERVER in ${BRDEXEC_SERVERLIST_LOOP}; do
   brdexec_repair_missing_known_hosts &
+  BRDEXEC_KNOWN_HOSTS_PIDS+=" $!"
 done
 
 wait ### for known hosts
