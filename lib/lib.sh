@@ -2140,12 +2140,11 @@ brdexec_repair_missing_known_hosts () {
           BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP}"
           BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER="$(grep -n ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ~/.ssh/known_hosts | head -n 1 | awk -F ":" '{print $1}')"
 
-          ### I am very proud of the following line, but don't remember why!
-	  if [ ! -f known_hosts_lock_file ]; then
-	    touch known_hosts_lock_file
+	  if [ ! -f "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file" ]; then
+	    touch "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file"
 	  else
 	    local BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER=0
-            while [ -f known_hosts_lock_file ]; do
+            while [ -f "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file" ]; do
               sleep 0.1 2>/dev/null || sleep 1
 	      ((BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER+=1))
 	      if [ "${BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER}" -gt "${BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER_MAX}" ]; then
@@ -2154,10 +2153,11 @@ brdexec_repair_missing_known_hosts () {
 		return 1
 	      fi
 	    done
-	    touch known_hosts_lock_file
+	    touch "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file"
 	  fi
+	  ### I am very proud of the following line, but don't remember why!
           awk -v linenumber="${BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER}" -v hostname="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" '{if(NR==linenumber){$1=$1","hostname; print}else{print}}' ~/.ssh/known_hosts > ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP} && mv ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP} ~/.ssh/known_hosts
-	  rm -f known_hosts_lock_file
+	  rm -f "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file"
         fi
       fi
     else
