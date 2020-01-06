@@ -1,6 +1,6 @@
 #FIXME check if following variables exist and if can be deleted
-#BRDEXEC_DEFAULT_HOSTS_FOLDER=hosts
-#BRDEXEC_DEFAULT_TEAMCONFIG_HOSTS_FOLDER=hosts
+#BRDEXEC_DEFAULT_HOSTS_FOLDER=lists
+#BRDEXEC_DEFAULT_TEAMCONFIG_HOSTS_FOLDER=lists
 #BRDEXEC_DEFAULT_HOSTS_FILE_PATH default=none
 #BRDEXEC_DEFAULT_HOSTS_FILE_PATH=${BRDEXEC_DEFAULT_TEAMCONFIG_HOSTS_FOLDER}/customer-test
 #BRDEXEC_DEFAULT_SCRIPTS_FOLDER=
@@ -52,13 +52,13 @@ BRDEXEC_DEFAULT_TEAMCONFIG_FOLDER=teamconfigs/${BRDEXEC_TEAM}
 ###################
 
 ### Path to hostfiles, each host should be on new line. 
-BRDEXEC_DEFAULT_HOSTS_FOLDER=hosts
+BRDEXEC_DEFAULT_HOSTS_FOLDER=lists
 #default FOLDER where "hosts" file and custom hosts files are looked for
 #this FOLDER name is relative to broadexec root and BRDEXEC_DEFAULT_TEAMCONFIG_FOLDER
 #same lookup is done in ${BRDEXEC_DEFAULT_TEAMCONFIG_FOLDER}/${BRDEXEC_DEFAULT_HOSTS_FOLDER} if BRDEXEC_TEAM_CONFIG is set
 
 ### Path to default hostfile to be used when no -h or -H parameters are used
-BRDEXEC_DEFAULT_HOSTS_FILE_PATH=hosts/hosts.default
+BRDEXEC_DEFAULT_HOSTS_FILE_PATH=lists/hosts.default
 
 ### path to file with error blacklist
 BRDEXEC_ERROR_BLACKLIST_FILE=$BRDEXEC_TEAMCONFIG_FOLDER/broadexec_error_blacklist.conf
