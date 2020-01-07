@@ -2113,6 +2113,9 @@ brdexec_repair_missing_known_hosts () {
   elif [ "$(grep -ic "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ~/.ssh/config 2>/dev/null)" -gt 0 ] 2>/dev/null; then
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="$(grep -iA2 "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ~/.ssh/config | grep Hostname | awk '{print $2}' | head -n 1)"
+  elif [ "$(getent hosts "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" | wc -l)" -gt 0 ]; then
+    BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
+    BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="$(getent hosts "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" | awk '{print $1}')"
   fi
 
   if [ "${1}" = "shout" ]; then
