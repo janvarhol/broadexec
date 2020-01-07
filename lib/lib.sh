@@ -909,7 +909,7 @@ brdexec_getopts_main () { verbose -s "brdexec_getopts_main ${@}"
               BRDEXEC_HOSTSLIST_EXCLUDE="${BRDEXEC_HOSTSLIST_EXCLUDE} ${1}"; shift ;;
           esac ;;
 
-        -H | --hosts) shift
+        -H | --hosts | -L) shift
           case ${1} in
             -* | "")
               brdexec_usage ;;
@@ -1908,9 +1908,9 @@ brdexec_usage () { verbose -s "brdexec_usage  ${@}"
   >&2 echo -e 'BROADEXEC HELP\n
 When run without options, broadexec will display menu to choose hosts file, if present custom filters found in second column of customer hosts file and also script to run and execute it.
 Available options:
-  -h, --hostslist [HOSTS_FILE]
+  -l, --hostslist [HOSTS_FILE]
     Only supported hosts files are located in folder specified by BRDEXEC_DEFAULT_SCRIPTS_FOLDER variable in conf file. They can be 1 column lists with hostname or 2 column ones also with IP. When hosts file is with IP, IP will be used to connect throught ssh and hostname to display output and create reports.
-  -H, --hosts [HOST1,HOST2,...]
+  -L, --hosts [HOST1,HOST2,...]
     Do not use host lists, but use provided hosts. Multiple -H parameters are supported.
   -f, --filter [PHRASE]
     optional for -l parameter. Set filter word specified in second column of hosts file for each customer, eg prod, test etc. If filters are divided by comma they are used for third,fourth etc column.
