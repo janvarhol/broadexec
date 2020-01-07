@@ -2120,46 +2120,46 @@ brdexec_repair_missing_known_hosts () {
   fi
 
   ### checking if current host is missing from known hosts
-  if [ "$(awk '{print $1}' ~/.ssh/known_hosts 2>/dev/null | grep -c ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER})" -eq 0 ]; then
+  if [ "$(awk '{print $1}' ~/.ssh/known_hosts 2>/dev/null | grep -wc ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER})" -eq 0 ]; then
     if [ "${1}" = "shout" ]; then
       brdexec_display_output "Executing keyscan on host ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" 1
     fi
-    if [ "$(ssh-keyscan -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEC_SSH_PORT_CONNECTION} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} 2>/dev/null | wc -l)" -ne 0 ]; then
+    if [ "$(ssh-keyscan -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEC_SSH_PORT_CONNECTION} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER},${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} 2>/dev/null | wc -l)" -ne 0 ]; then
 
       ### adding keys to knownhosts
-      brdexec_display_output "  Adding ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} to ~/.ssh/known_hosts" 2
+      brdexec_display_output "  Adding ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER},${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} to ~/.ssh/known_hosts" 2
       touch ${BRDEXEC_KNOWN_HOSTS_MESSAGE}
-      ssh-keyscan -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEC_SSH_PORT_CONNECTION} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} 2>/dev/null >> ~/.ssh/known_hosts
+      ssh-keyscan -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEC_SSH_PORT_CONNECTION} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER},${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} 2>/dev/null >> ~/.ssh/known_hosts
 
-      ### add also hostname with IP address
-      if [ ! -z "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" ]; then
-        if [ "$(grep -c ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ~/.ssh/known_hosts)" -gt 0 ]; then
-          brdexec_display_output "  Adding ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} to ~/.ssh/known_hosts" 2
-          touch ${BRDEXEC_KNOWN_HOSTS_MESSAGE}
-          BRDEXEX_MISSING_KNOWN_HOSTS_TEMP="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-          BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP}"
-          BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER="$(grep -n ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ~/.ssh/known_hosts | head -n 1 | awk -F ":" '{print $1}')"
+      #### add also hostname with IP address
+      #if [ ! -z "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" ]; then
+      #  if [ "$(grep -c ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ~/.ssh/known_hosts)" -gt 0 ]; then
+      #    brdexec_display_output "  Adding ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} to ~/.ssh/known_hosts" 2
+      #    touch ${BRDEXEC_KNOWN_HOSTS_MESSAGE}
+      #    BRDEXEX_MISSING_KNOWN_HOSTS_TEMP="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
+      #    BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP}"
+      #    BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER="$(grep -n ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ~/.ssh/known_hosts | head -n 1 | awk -F ":" '{print $1}')"
 
-	  if [ ! -f "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file" ]; then
-	    touch "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file"
-	  else
-	    local BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER=0
-            while [ -f "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file" ]; do
-              sleep 0.1 2>/dev/null || sleep 1
-	      ((BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER+=1))
-	      if [ "${BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER}" -gt "${BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER_MAX}" ]; then
-		log "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} Unable to obtain lock for known hosts lockfile" 1
-		brdexec_display_output "  Warning: Unable to obtain lock when adding ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} to the known hosts" 2
-		return 1
-	      fi
-	    done
-	    touch "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file"
-	  fi
-	  ### I am very proud of the following line, but don't remember why!
-          awk -v linenumber="${BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER}" -v hostname="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" '{if(NR==linenumber){$1=$1","hostname; print}else{print}}' ~/.ssh/known_hosts > ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP} && mv ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP} ~/.ssh/known_hosts
-	  rm -f "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file"
-        fi
-      fi
+      #    if [ ! -f "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file" ]; then
+      #      touch "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file"
+      #    else
+      #      local BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER=0
+      #      while [ -f "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file" ]; do
+      #        sleep 0.1 2>/dev/null || sleep 1
+      #        ((BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER+=1))
+      #        if [ "${BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER}" -gt "${BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER_MAX}" ]; then
+      #  	log "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} Unable to obtain lock for known hosts lockfile" 1
+      #  	brdexec_display_output "  Warning: Unable to obtain lock when adding ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} to the known hosts" 2
+      #  	return 1
+      #        fi
+      #      done
+      #      touch "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file"
+      #    fi
+      #    ### I am very proud of the following line, but don't remember why!
+      #    awk -v linenumber="${BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER}" -v hostname="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" '{if(NR==linenumber){$1=$1","hostname; print}else{print}}' ~/.ssh/known_hosts > ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP} && mv ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP} ~/.ssh/known_hosts
+      #    rm -f "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file"
+      #  fi
+      #fi
     else
       log "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} problem getting fingerprint information" 1
       if [ "${1}" = "shout" ]; then
@@ -2337,6 +2337,7 @@ brdexec_interruption_ctrl_c () { verbose -s "brdexec_interruption_ctrl_c ${@}"
     disown ${BRDEXEC_KNOWN_HOSTS_PID}
     kill -9 ${BRDEXEC_KNOWN_HOSTS_PID} >/dev/null 2>&1
   done
+  #FIXME remove when lockfile is not used anymore
   ### Removing lock file
   if [ -e "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file" ]; then
     rm -f "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file"
