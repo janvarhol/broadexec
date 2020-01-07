@@ -332,10 +332,11 @@ brdexec_ssh_pid () { verbose -s "brdexec_ssh_pid ${@}"
 
     ### check for entry in broadexec hosts file and use it if found
     if [ ! -z "${BRDEXEC_SERVER}" ] && [ -f "${BRDEXEC_HOSTS_FILE}" ]; then
-      if [ "$(grep -ic "${BRDEXEC_SERVER}" ${BRDEXEC_HOSTS_FILE} 2>/dev/null)" -gt 0 ] 2>/dev/null; then
-        BRDEXEC_SERVER="$(grep -i "${BRDEXEC_SERVER}" ${BRDEXEC_HOSTS_FILE} | head -n 1 | awk '{print $1}')"
+      if [ "$(grep -iw "${BRDEXEC_SERVER}" ${BRDEXEC_HOSTS_FILE} 2>/dev/null | grep -cv ^#)" -gt 0 ] 2>/dev/null; then
+        BRDEXEC_SERVER="$(grep -wi "${BRDEXEC_SERVER}" ${BRDEXEC_HOSTS_FILE} | grep -v ^# | head -n 1 | awk '{print $1}')"
       fi
     fi
+
 
     ### main ssh command of broadexec
     ### check for script with custom credentials
@@ -2097,6 +2098,8 @@ brdexec_display_error_log () { verbose -s "brdexec_display_error_log ${@}"
 #305
 brdexec_repair_missing_known_hosts () {
 
+#set -x
+
   #FIXME make better standards... :/
   BRDEXEC_SERVER="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
   brdexec_extract_username_port_from_hostname
@@ -2106,13 +2109,13 @@ brdexec_repair_missing_known_hosts () {
   unset BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME
 
   ### checking hostname against broadexec hosts file
-  if [ "$(grep -ic "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ${BRDEXEC_HOSTS_FILE} 2>/dev/null)" -gt 0 ] 2>/dev/null; then
+  if [ "$(grep -iw "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ${BRDEXEC_HOSTS_FILE} 2>/dev/null |grep -cv ^#)" -gt 0 ] 2>/dev/null; then
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
-    BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="$(grep -i "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ${BRDEXEC_HOSTS_FILE} | head -n 1 | awk '{print $1}')"
+    BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="$(grep -iw "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ${BRDEXEC_HOSTS_FILE} | grep -v ^# | head -n 1 | awk '{print $1}')"
   ### or against ~/.ssh/config
-  elif [ "$(grep -ic "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ~/.ssh/config 2>/dev/null)" -gt 0 ] 2>/dev/null; then
+  elif [ "$(grep -iw "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ~/.ssh/config 2>/dev/null |grep -cv ^#)" -gt 0 ] 2>/dev/null; then
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
-    BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="$(grep -iA2 "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ~/.ssh/config | grep Hostname | awk '{print $2}' | head -n 1)"
+    BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="$(grep -iwA2 "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ~/.ssh/config | grep -v ^# | awk '/Hostname/ {print $2}' | head -n 1)"
   elif [ "$(getent hosts "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" | wc -l)" -gt 0 ]; then
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="$(getent hosts "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" | awk '{print $1}')"
