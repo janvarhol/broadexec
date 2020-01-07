@@ -163,7 +163,8 @@ fi
 verbose 126 2
 
 ### verify script signature
-brdexec_load_plugin brdexec_verify_script_signature
+#brdexec_load_plugin brdexec_verify_script_signature
+brdexec_execute_plugin_hooks brdexec_before_script_manipulation
 
 brdexec_create_hosts_list_based_on_filter
 
