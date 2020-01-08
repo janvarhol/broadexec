@@ -325,6 +325,8 @@ brdexec_script_menu_selection () { verbose -s "brdexec_script_menu_selection ${@
 #14
 brdexec_ssh_pid () { verbose -s "brdexec_ssh_pid ${@}"
 
+  local BRDEXEC_TEMP_OUTPUT
+
   ### create ssh process
   if [ "${1}" = "create" ]; then
 
@@ -332,8 +334,8 @@ brdexec_ssh_pid () { verbose -s "brdexec_ssh_pid ${@}"
 
     ### check for entry in broadexec hosts file and use it if found
     if [ ! -z "${BRDEXEC_SERVER}" ] && [ -f "${BRDEXEC_HOSTS_FILE}" ]; then
-      if [ "$(grep -ic "${BRDEXEC_SERVER}" ${BRDEXEC_HOSTS_FILE} 2>/dev/null)" -gt 0 ] 2>/dev/null; then
-        BRDEXEC_SERVER="$(grep -i "${BRDEXEC_SERVER}" ${BRDEXEC_HOSTS_FILE} | head -n 1 | awk '{print $1}')"
+      if BRDEXEC_TEMP_OUTPUT="$(grep -wi "${BRDEXEC_SERVER}" ${BRDEXEC_HOSTS_FILE} | grep -v ^# | head -n 1 | awk '{print $1}')"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
+        BRDEXEC_SERVER="${BRDEXEC_TEMP_OUTPUT}"
       fi
     fi
 
@@ -561,7 +563,7 @@ brdexec_hosts () {
   case ${1} in
     init_default_hosts_folder)
       if [ -z "${BRDEXEC_DEFAULT_HOSTS_FOLDER}" ]; then
-        BRDEXEC_DEFAULT_HOSTS_FOLDER=hosts
+        BRDEXEC_DEFAULT_HOSTS_FOLDER=lists
       fi
       if [ ! -d "${BRDEXEC_DEFAULT_HOSTS_FOLDER}" ]; then
         display_error "180" 1
@@ -638,10 +640,10 @@ brdexec_hosts () {
 
           ### create hostsfile list with full relative paths
           for BRDEXEC_TEAM_HOSTSFILE in ${BRDEXEC_LIST_OF_TEAM_HOSTSFILES}; do
-            BRDEXEC_LIST_OF_FULL_HOSTSFILES="${BRDEXEC_LIST_OF_FULL_HOSTSFILES} hosts/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_HOSTSFILE}"
+            BRDEXEC_LIST_OF_FULL_HOSTSFILES="${BRDEXEC_LIST_OF_FULL_HOSTSFILES} ${BRDEXEC_DEFAULT_HOSTS_FOLDER}/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_HOSTSFILE}"
           done
           for BRDEXEC_CUSTOM_HOSTSFILE in ${BRDEXEC_LIST_OF_CUSTOM_HOSTSFILES}; do
-            BRDEXEC_LIST_OF_FULL_HOSTSFILES="${BRDEXEC_LIST_OF_FULL_HOSTSFILES} hosts/${BRDEXEC_CUSTOM_HOSTSFILE}"
+            BRDEXEC_LIST_OF_FULL_HOSTSFILES="${BRDEXEC_LIST_OF_FULL_HOSTSFILES} ${BRDEXEC_DEFAULT_HOSTS_FOLDER}/${BRDEXEC_CUSTOM_HOSTSFILE}"
           done
           ### check and include default hostfile in case it is linked differently or in different folder
           if [ -f "${BRDEXEC_DEFAULT_HOSTS_FILE_PATH}" ]; then
@@ -681,8 +683,8 @@ brdexec_hosts () {
       if [ -f "${BRDEXEC_DEFAULT_HOSTS_FOLDER}/hosts" ]; then
         cat "${BRDEXEC_DEFAULT_HOSTS_FOLDER}/hosts" >> ${BRDEXEC_HOSTS_FILE}
       fi
-      if [ -f "default/hosts/hosts" ]; then
-        cat default/hosts/hosts >> ${BRDEXEC_HOSTS_FILE}
+      if [ -f "${BRDEXEC_DEFAULT_HOSTS_FOLDER}/hosts" ]; then
+        cat ${BRDEXEC_DEFAULT_HOSTS_FOLDER}/hosts >> ${BRDEXEC_HOSTS_FILE}
       fi
     ;;
   esac
@@ -908,7 +910,7 @@ brdexec_getopts_main () { verbose -s "brdexec_getopts_main ${@}"
               BRDEXEC_HOSTSLIST_EXCLUDE="${BRDEXEC_HOSTSLIST_EXCLUDE} ${1}"; shift ;;
           esac ;;
 
-        -H | --hosts) shift
+        -H | --hosts | -L) shift
           case ${1} in
             -* | "")
               brdexec_usage ;;
@@ -1907,9 +1909,9 @@ brdexec_usage () { verbose -s "brdexec_usage  ${@}"
   >&2 echo -e 'BROADEXEC HELP\n
 When run without options, broadexec will display menu to choose hosts file, if present custom filters found in second column of customer hosts file and also script to run and execute it.
 Available options:
-  -h, --hostslist [HOSTS_FILE]
+  -l, --hostslist [HOSTS_FILE]
     Only supported hosts files are located in folder specified by BRDEXEC_DEFAULT_SCRIPTS_FOLDER variable in conf file. They can be 1 column lists with hostname or 2 column ones also with IP. When hosts file is with IP, IP will be used to connect throught ssh and hostname to display output and create reports.
-  -H, --hosts [HOST1,HOST2,...]
+  -L, --hosts [HOST1,HOST2,...]
     Do not use host lists, but use provided hosts. Multiple -H parameters are supported.
   -f, --filter [PHRASE]
     optional for -l parameter. Set filter word specified in second column of hosts file for each customer, eg prod, test etc. If filters are divided by comma they are used for third,fourth etc column.
@@ -2097,6 +2099,8 @@ brdexec_display_error_log () { verbose -s "brdexec_display_error_log ${@}"
 #305
 brdexec_repair_missing_known_hosts () {
 
+  local BRDEXEC_TEMP_OUTPUT
+
   #FIXME make better standards... :/
   BRDEXEC_SERVER="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
   brdexec_extract_username_port_from_hostname
@@ -2106,16 +2110,16 @@ brdexec_repair_missing_known_hosts () {
   unset BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME
 
   ### checking hostname against broadexec hosts file
-  if [ "$(grep -ic "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ${BRDEXEC_HOSTS_FILE} 2>/dev/null)" -gt 0 ] 2>/dev/null; then
+  if BRDEXEC_TEMP_OUTPUT="$(grep -iw "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ${BRDEXEC_HOSTS_FILE} | grep -v ^# | head -n 1 | awk '{print $1}')"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
-    BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="$(grep -i "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ${BRDEXEC_HOSTS_FILE} | head -n 1 | awk '{print $1}')"
+    BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="${BRDEXEC_TEMP_OUTPUT}"
   ### or against ~/.ssh/config
-  elif [ "$(grep -ic "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ~/.ssh/config 2>/dev/null)" -gt 0 ] 2>/dev/null; then
+  elif BRDEXEC_TEMP_OUTPUT="$(grep -iwA2 "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ~/.ssh/config | grep -v ^# | awk '/Hostname/ {print $2}' | head -n 1)"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
-    BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="$(grep -iA2 "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ~/.ssh/config | grep Hostname | awk '{print $2}' | head -n 1)"
-  elif [ "$(getent hosts "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" | wc -l)" -gt 0 ]; then
+    BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="${BRDEXEC_TEMP_OUTPUT}"
+  elif BRDEXEC_TEMP_OUTPUT="$(getent hosts "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" | awk '{print $1}')"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
-    BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="$(getent hosts "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" | awk '{print $1}')"
+    BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="${BRDEXEC_TEMP_OUTPUT}"
   fi
 
   if [ "${1}" = "shout" ]; then
@@ -2656,7 +2660,7 @@ brdexec_admin_functions () { verbose -s "brdexec_admin_functions ${@}"
         break
       ;;
 
-      "Add hostnames and info from ${BRDEXEC_DEFAULT_HOSTS_FOLDER}/hosts and default/hosts/hosts to ~/.ssh/config - not included in check and fix all")
+      "Add hostnames and info from ${BRDEXEC_DEFAULT_HOSTS_FOLDER}/hosts to ~/.ssh/config - not included in check and fix all")
 
         if [ -s "${BRDEXEC_HOSTS_FILE}" ]; then
           if [ "$(grep -v ^# ${BRDEXEC_HOSTS_FILE} | grep -v "^$" | wc -l)" -gt 0 ]; then
@@ -3049,9 +3053,9 @@ brdexec_check_updates () { verbose -s "brdexec_check_updates ${@}"
     mkdir ./conf || display_error "474" 1
   fi
 
-  ### create hosts folder if missing
-  if [ ! -d ./hosts ]; then
-    mkdir ./hosts || display_error "475" 1
+  ### create hostslists folder if missing
+  if [ ! -d "${BRDEXEC_DEFAULT_HOSTS_FOLDER}" ]; then
+    mkdir "${BRDEXEC_DEFAULT_HOSTS_FOLDER}" || display_error "475" 1
   fi
 
   ### check config file
@@ -3195,8 +3199,8 @@ brdexec_create_config_file () {
   if [ ! -d ./conf ]; then
    mkdir ./conf || display_error "474" 1
   fi
-  if [ ! -d ./hosts ]; then
-    mkdir ./hosts || display_error "475" 1
+  if [ ! -d "${BRDEXEC_DEFAULT_HOSTS_FOLDER}" ]; then
+    mkdir "${BRDEXEC_DEFAULT_HOSTS_FOLDER}" || display_error "475" 1
   fi
   echo "Getting files from team group repository"
   if [ "$(grep -c "^BRDEXEC_SSH_PORT" conf/broadexec.conf 2>/dev/null)" -lt 1 ] 2>/dev/null || [ ! -f broadexec.conf ]; then
@@ -3239,7 +3243,7 @@ brdexec_create_config_file () {
   echo "BRDEXEC_TEAM_CONFIG=${BRDEXEC_TEAM_CONFIG}" >> conf/broadexec.conf
   echo -e "\nCreating links to team folder"
 
-  for BRDEXEC_TEAM_CONFIG_SUBFOLDER in conf hosts scripts
+  for BRDEXEC_TEAM_CONFIG_SUBFOLDER in conf "${BRDEXEC_DEFAULT_HOSTS_FOLDER}" scripts
   do
     if [ -d "${BRDEXEC_TEAM_CONFIG_SUBFOLDER}" ]; then
       cd "${BRDEXEC_TEAM_CONFIG_SUBFOLDER}"
