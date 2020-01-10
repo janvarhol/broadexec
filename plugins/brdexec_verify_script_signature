@@ -7,13 +7,19 @@
 
 brdexec_verify_script_signature__brdexec_before_script_manipulation () {
 
+  local BRDEXEC_TEMP_OUTPUT
+
   ### import public gpg keys
   if [ -d etc/gpg_pubkeys ]; then
-    if [ "$(find etc/gpg_pubkeys/ -name *.gpg | tr '\n' ' ' | wc -w)" -gt 0 ]; then
+    if BRDEXEC_TEMP_OUTPUT="$(find etc/gpg_pubkeys/ -name '*.gpg' | tr '\n' ' ')"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
       if [ "${BRDEXEC_INSTALLED_NOW}" = "yes" ]; then
         brdexec_display_output "  Importing GPG signature keys" 1
       fi
-      gpg --import $(find etc/gpg_pubkeys/ -name *.gpg | tr '\n' ' ') >/dev/null 2>&1
+      ### no quotes after gpg --import, otherwise importing of more than one file fails
+      gpg --import ${BRDEXEC_TEMP_OUTPUT} >/dev/null 2>&1
+      if [ "$?" -ne 0 ]; then
+        display_error "462" 1
+      fi
     else
       ### there are no keys provided
       display_error "461" 1
