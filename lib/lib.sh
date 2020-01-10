@@ -333,8 +333,9 @@ brdexec_ssh_pid () { verbose -s "brdexec_ssh_pid ${@}"
     brdexec_extract_username_port_from_hostname
 
     ### check for entry in broadexec hosts file and use it if found
+    ### awk is used to find exact match of server name in 2nd field and tail prints last occurence
     if [ ! -z "${BRDEXEC_SERVER}" ] && [ -f "${BRDEXEC_HOSTS_FILE}" ]; then
-      if BRDEXEC_TEMP_OUTPUT="$(grep -wi "${BRDEXEC_SERVER}" ${BRDEXEC_HOSTS_FILE} | grep -v ^# | head -n 1 | awk '{print $1}')"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
+      if BRDEXEC_TEMP_OUTPUT="$(grep -v "^#" ${BRDEXEC_HOSTS_FILE} | tr '[A-Z]' '[a-z]' | awk -v server=${BRDEXEC_SERVER} '($2 == server) {print $1}' | tail -n 1)"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
         BRDEXEC_SERVER="${BRDEXEC_TEMP_OUTPUT}"
       fi
     fi
@@ -2110,11 +2111,13 @@ brdexec_repair_missing_known_hosts () {
   unset BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME
 
   ### checking hostname against broadexec hosts file
-  if BRDEXEC_TEMP_OUTPUT="$(grep -iw "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ${BRDEXEC_HOSTS_FILE} | grep -v ^# | head -n 1 | awk '{print $1}')"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
+  ### awk is used to find exact match of server name in 2nd field and tail prints last occurence
+  if BRDEXEC_TEMP_OUTPUT="$(grep -v "^#" ${BRDEXEC_HOSTS_FILE} | tr '[A-Z]' '[a-z]' | awk -v server="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" '($2 == server) {print $1}' | tail -n 1)"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="${BRDEXEC_TEMP_OUTPUT}"
   ### or against ~/.ssh/config
-  elif BRDEXEC_TEMP_OUTPUT="$(grep -iwA2 "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ~/.ssh/config | grep -v ^# | awk '/Hostname/ {print $2}' | head -n 1)"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
+  ### awk is used to find exact match of server name in 2nd field, where 1st field is "Host", then it reads 5 consecutive lines and if line matches "Hostname" string in the 1st field, it prints 2nd field, where IP is expected; tail prints last occurence
+  elif BRDEXEC_TEMP_OUTPUT="$(grep -v "^#" ~/.ssh/config | tr '[A-Z]' '[a-z]' | awk -v server=${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} '($1 == "host") && ($2 == server) {for(i=1; i<=5; i++) {getline; if($1=="host"){break;} else if($1=="hostname"){print $2; break;}}}' | tail -n 1)"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="${BRDEXEC_TEMP_OUTPUT}"
   elif BRDEXEC_TEMP_OUTPUT="$(getent hosts "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" | awk '{print $1}')"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
