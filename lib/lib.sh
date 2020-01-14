@@ -3105,21 +3105,21 @@ brdexec_check_updates () { verbose -s "brdexec_check_updates ${@}"
   #  done
   #fi
 
-  ### import public gpg keys
-  if [ -d etc/gpg_pubkeys ]; then
-    if [ "$(find etc/gpg_pubkeys/ -name *.gpg | tr '\n' ' ' | wc -w)" -gt 0 ]; then
-      if [ "${BRDEXEC_INSTALLED_NOW}" = "yes" ]; then
-        brdexec_display_output "  Importing GPG signature keys" 1
-      fi
-      gpg --import $(find etc/gpg_pubkeys/ -name *.gpg | tr '\n' ' ') 2>/dev/null
-    else
-      ### there are no keys provided
-      display_error "461" 1
-    fi
-  else
-    ### folder with keys does not exist
-    display_error "460" 1
-  fi
+  #### import public gpg keys
+  #if [ -d etc/gpg_pubkeys ]; then
+  #  if [ "$(find etc/gpg_pubkeys/ -name *.gpg | tr '\n' ' ' | wc -w)" -gt 0 ]; then
+  #    if [ "${BRDEXEC_INSTALLED_NOW}" = "yes" ]; then
+  #      brdexec_display_output "  Importing GPG signature keys" 1
+  #    fi
+  #    gpg --import $(find etc/gpg_pubkeys/ -name *.gpg | tr '\n' ' ') 2>/dev/null
+  #  else
+  #    ### there are no keys provided
+  #    display_error "461" 1
+  #  fi
+  #else
+  #  ### folder with keys does not exist
+  #  display_error "460" 1
+  #fi
 
   ### write to update log
   BRDEXEC_LOG_CHECK_UPDATES_GIT_UPDATE_INFO="$(cat "${BRDEXEC_LOG_CHECK_UPDATES_GIT_OUTPUT}" 2>/dev/null | sed ':a;N;$!ba;s/\n/ /g')"
