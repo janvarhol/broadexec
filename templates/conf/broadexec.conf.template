@@ -24,9 +24,11 @@ BRDEXEC_USER_SSH_KEY=~/.ssh/id_rsa
 
 ### Shell for calling the script ###
 ### Following values are available:
-### sudo - call script using "sudo su - -c"
+### sudo - call script using "sudo"
+### sudosu - call script using "sudo su - -c"
 ### secured_sudo  -see below for special use
 ### sh - call script using "sh -c"
+### Note, ssh runs without -t option, so in case of running with sudo, "Defaults requiretty" cannot be in /etc/sudoers, or it must be negated with "Defaults:user !requiretty"
 ### Default: sh
 BRDEXEC_RUNSHELL=sh
 

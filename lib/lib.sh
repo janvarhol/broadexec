@@ -342,6 +342,7 @@ brdexec_ssh_pid () { verbose -s "brdexec_ssh_pid ${@}"
 
     ### main ssh command of broadexec
     ### check for script with custom credentials
+    ### ssh will run OK without '-t' option  (tty) when sudo is used, only if there is no "Defaults requiretty" in /etc/sudoers, or it's negated with "Defaults:user !requiretty"
     if [ -z "${BRDEXEC_SCRIPT_CUSTOM_CREDENTIALS}" ]; then
       if [ "${BRDEXEC_RUNSHELL}" = "secured_sudo" 2>/dev/null ]; then
         if [ -z "${BRDEXEC_SECURED_SUDO_SCRIPT}" ]; then
