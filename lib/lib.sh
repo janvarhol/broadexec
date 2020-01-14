@@ -2406,16 +2406,16 @@ brdexec_questions () { verbose -s "brdexec_questions ${@}"
         BRDEXEC_QUESTION_CHECK_NUMBER="$(echo "${BRDEXEC_SCRIPT_QUESTION_LINE}" | awk -F "=" '{print $1}' | awk -F "_" '{print NF}')"
 
         ### get question options and parameter name for script and invalidate question in case it is not in correct format
-        if [ "${BRDEXEC_QUESTION_CHECK_NUMBER}" -eq 7 ]; then
-          BRDEXEC_QUESTION_OPTION="$(echo "${BRDEXEC_SCRIPT_QUESTION_LINE}" | awk -F "=" '{print $1}' | awk -F "_" '{print $6}')"
+        if [ "${BRDEXEC_QUESTION_CHECK_NUMBER}" -eq 5 ]; then
+          BRDEXEC_QUESTION_OPTION="$(echo "${BRDEXEC_SCRIPT_QUESTION_LINE}" | awk -F "=" '{print $1}' | awk -F "_" '{print $4}')"
           if [ "${BRDEXEC_QUESTION_OPTION}" != "r" ] && [ "${BRDEXEC_QUESTION_OPTION}" != "o" ] && [ "${BRDEXEC_QUESTION_OPTION}" != "b" ]; then
             BRDEXEC_SCRIPT_QUESTION_LINE_VALID="no"
           fi
-          BRDEXEC_QUESTION_PARAMETER_NAME="$(echo "${BRDEXEC_SCRIPT_QUESTION_LINE}" | awk -F "=" '{print $1}' | awk -F "_" '{print $7}')"
+          BRDEXEC_QUESTION_PARAMETER_NAME="$(echo "${BRDEXEC_SCRIPT_QUESTION_LINE}" | awk -F "=" '{print $1}' | awk -F "_" '{print $5}')"
         else
           BRDEXEC_SCRIPT_QUESTION_LINE_VALID="no"
         fi
-        if [ "${BRDEXEC_QUESTION_CHECK_NUMBER}" -eq 8 ]; then
+        if [ "${BRDEXEC_QUESTION_CHECK_NUMBER}" -eq 6 ]; then
           BRDEXEC_QUESTION_PARAMETER_DEFAULT="$(echo "${BRDEXEC_SCRIPT_QUESTION_LINE}" | awk -F "=" '{print $1}' | awk -F "_" '{print $8}')"
         fi
         BRDEXEC_QUESTION_CONTENT="$(echo "${BRDEXEC_SCRIPT_QUESTION_LINE}" | awk -F "=" '{print $2}' | awk -F "\"" '{print $2}')"
