@@ -2118,7 +2118,7 @@ brdexec_repair_missing_known_hosts () {
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="${BRDEXEC_TEMP_OUTPUT}"
   ### or against ~/.ssh/config
   ### awk is used to find exact match of server name in 2nd field, where 1st field is "Host", then it reads 5 consecutive lines and if line matches "Hostname" string in the 1st field, it prints 2nd field, where IP is expected; tail prints last occurence
-  elif BRDEXEC_TEMP_OUTPUT="$(grep -v "^#" ~/.ssh/config | tr '[A-Z]' '[a-z]' | awk -v server=${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} '($1 == "host") && ($2 == server) {for(i=1; i<=5; i++) {getline; if($1=="host"){break;} else if($1=="hostname"){print $2; break;}}}' | tail -n 1)"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
+  elif BRDEXEC_TEMP_OUTPUT="$(grep -v "^#" ~/.ssh/config 2>/dev/null | tr '[A-Z]' '[a-z]' | awk -v server=${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} '($1 == "host") && ($2 == server) {for(i=1; i<=5; i++) {getline; if($1=="host"){break;} else if($1=="hostname"){print $2; break;}}}' | tail -n 1)"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="${BRDEXEC_TEMP_OUTPUT}"
   elif BRDEXEC_TEMP_OUTPUT="$(getent hosts "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" | awk '{print $1}')"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
@@ -2131,6 +2131,9 @@ brdexec_repair_missing_known_hosts () {
   fi
 
   ### checking if current host is missing from known hosts
+  if [ ! -e ~/.ssh/known_hosts ] || [ -z "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ]; then
+    return 1
+  fi
   if [ "$(awk '{print $1}' ~/.ssh/known_hosts 2>/dev/null | grep -wc ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER})" -eq 0 ]; then
     if [ "${1}" = "shout" ]; then
       brdexec_display_output "Executing keyscan on host ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" 1
