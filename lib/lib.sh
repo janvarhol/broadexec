@@ -1659,29 +1659,20 @@ brdexec_make_temporary_script () {
 
     ### check embeded variables and discard invalid ones
     BRDEXEC_SCRIPT_EMBEDED="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-    BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_SCRIPT_EMBEDED}"
+    BRDEXEC_EMBEDED_LINES="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
+    BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_SCRIPT_EMBEDED} ${BRDEXEC_EMBEDED_LINES}"
+    grep ^BRDEXEC_ ${BRDEXEC_TMP_SCRIPT} > ${BRDEXEC_EMBEDED_LINES}
     while read BRDEXEC_SCRIPT_EMBEDED_LINE
     do
-      if [ "$(echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" | grep -c ^BRDEXEC_ | awk -F "=" '{print $1}')" -eq 1 ]; then
-
-        unset BRDEXEC_EMBEDED_VAR
-        BRDEXEC_EMBEDED_VAR="$(echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" | awk -F "=" '{print $1}')"
-        if [ "$(grep -wc "^${BRDEXEC_EMBEDED_VAR}$" ./etc/enhanced_script_supported_variables.db)" -eq 1 ]; then
-          #FIXME secure the line loaded better
-          echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" > ${BRDEXEC_SCRIPT_EMBEDED}
-          . ${BRDEXEC_SCRIPT_EMBEDED}
-        fi
-
-        #while read BRDEXEC_SCRIPT_SUPPORTED_VARIABLE
-        #do
-        #  if [ "$(echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" | awk -F "=" '{print $1}')" = "$(echo "${BRDEXEC_SCRIPT_SUPPORTED_VARIABLE}" | awk -F "=" '{print $1}')" ]; then
-        #    echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" > ${BRDEXEC_SCRIPT_EMBEDED}
-        #    . ${BRDEXEC_SCRIPT_EMBEDED}
-        #  fi
-        #done < ./etc/enhanced_script_supported_variables.db
+      unset BRDEXEC_EMBEDED_VAR
+      BRDEXEC_EMBEDED_VAR="$(echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" | awk -F "=" '{print $1}')"
+      if [ "$(grep -wc "^${BRDEXEC_EMBEDED_VAR}$" ./etc/enhanced_script_supported_variables.db)" -eq 1 ]; then
+        #FIXME secure the line loaded better
+        echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" > ${BRDEXEC_SCRIPT_EMBEDED}
+        . ${BRDEXEC_SCRIPT_EMBEDED}
       fi
-    done < ${BRDEXEC_TMP_SCRIPT}
-    rm ${BRDEXEC_SCRIPT_EMBEDED}
+    done < ${BRDEXEC_EMBEDED_LINES}
+    rm ${BRDEXEC_SCRIPT_EMBEDED} ${BRDEXEC_EMBEDED_LINES} 2>/dev/null
   else
     display_error "2120" 1
   fi
