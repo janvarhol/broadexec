@@ -1947,6 +1947,11 @@ Available options:
 #302
 verbose () {
 
+  ### skip if no verbose mode
+  if [ "${VERBOSE}" != "yes" ] && [ "${DEBUG}" != "yes" ]; then
+    return 0
+  fi
+
   ### display this when wrong input
   if [ "$#" -lt 1 ]; then
     >&2 echo "   VERBOSE: Error displaying verbose output."
