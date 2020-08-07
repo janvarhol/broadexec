@@ -325,20 +325,24 @@ brdexec_script_menu_selection () { verbose -s "brdexec_script_menu_selection ${@
 #14
 brdexec_ssh_pid () { verbose -s "brdexec_ssh_pid ${@}"
 
+  local BRDEXEC_TEMP_OUTPUT
+
   ### create ssh process
   if [ "${1}" = "create" ]; then
 
     brdexec_extract_username_port_from_hostname
 
     ### check for entry in broadexec hosts file and use it if found
+    ### awk is used to find exact match of server name in 2nd field and tail prints last occurence
     if [ ! -z "${BRDEXEC_SERVER}" ] && [ -f "${BRDEXEC_HOSTS_FILE}" ]; then
-      if [ "$(grep -ic "${BRDEXEC_SERVER}" ${BRDEXEC_HOSTS_FILE} 2>/dev/null)" -gt 0 ] 2>/dev/null; then
-        BRDEXEC_SERVER="$(grep -i "${BRDEXEC_SERVER}" ${BRDEXEC_HOSTS_FILE} | head -n 1 | awk '{print $1}')"
+      if BRDEXEC_TEMP_OUTPUT="$(grep -v "^#" ${BRDEXEC_HOSTS_FILE} | tr '[A-Z]' '[a-z]' | awk -v server=${BRDEXEC_SERVER} '($2 == server) {print $1}' | tail -n 1)"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
+        BRDEXEC_SERVER="${BRDEXEC_TEMP_OUTPUT}"
       fi
     fi
 
     ### main ssh command of broadexec
     ### check for script with custom credentials
+    ### ssh will run OK without '-t' option  (tty) when sudo is used, only if there is no "Defaults requiretty" in /etc/sudoers, or it's negated with "Defaults:user !requiretty"
     if [ -z "${BRDEXEC_SCRIPT_CUSTOM_CREDENTIALS}" ]; then
       if [ "${BRDEXEC_RUNSHELL}" = "secured_sudo" 2>/dev/null ]; then
         if [ -z "${BRDEXEC_SECURED_SUDO_SCRIPT}" ]; then
@@ -561,7 +565,7 @@ brdexec_hosts () {
   case ${1} in
     init_default_hosts_folder)
       if [ -z "${BRDEXEC_DEFAULT_HOSTS_FOLDER}" ]; then
-        BRDEXEC_DEFAULT_HOSTS_FOLDER=hosts
+        BRDEXEC_DEFAULT_HOSTS_FOLDER=lists
       fi
       if [ ! -d "${BRDEXEC_DEFAULT_HOSTS_FOLDER}" ]; then
         display_error "180" 1
@@ -641,10 +645,10 @@ brdexec_hosts () {
 
           ### create hostsfile list with full relative paths
           for BRDEXEC_TEAM_HOSTSFILE in ${BRDEXEC_LIST_OF_TEAM_HOSTSFILES}; do
-            BRDEXEC_LIST_OF_FULL_HOSTSFILES="${BRDEXEC_LIST_OF_FULL_HOSTSFILES} hosts/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_HOSTSFILE}"
+            BRDEXEC_LIST_OF_FULL_HOSTSFILES="${BRDEXEC_LIST_OF_FULL_HOSTSFILES} ${BRDEXEC_DEFAULT_HOSTS_FOLDER}/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_HOSTSFILE}"
           done
           for BRDEXEC_CUSTOM_HOSTSFILE in ${BRDEXEC_LIST_OF_CUSTOM_HOSTSFILES}; do
-            BRDEXEC_LIST_OF_FULL_HOSTSFILES="${BRDEXEC_LIST_OF_FULL_HOSTSFILES} hosts/${BRDEXEC_CUSTOM_HOSTSFILE}"
+            BRDEXEC_LIST_OF_FULL_HOSTSFILES="${BRDEXEC_LIST_OF_FULL_HOSTSFILES} ${BRDEXEC_DEFAULT_HOSTS_FOLDER}/${BRDEXEC_CUSTOM_HOSTSFILE}"
           done
           ### check and include default hostfile in case it is linked differently or in different folder
           if [ -f "${BRDEXEC_DEFAULT_HOSTS_FILE_PATH}" ]; then
@@ -684,8 +688,8 @@ brdexec_hosts () {
       if [ -f "${BRDEXEC_DEFAULT_HOSTS_FOLDER}/hosts" ]; then
         cat "${BRDEXEC_DEFAULT_HOSTS_FOLDER}/hosts" >> ${BRDEXEC_HOSTS_FILE}
       fi
-      if [ -f "default/hosts/hosts" ]; then
-        cat default/hosts/hosts >> ${BRDEXEC_HOSTS_FILE}
+      if [ -f "${BRDEXEC_DEFAULT_HOSTS_FOLDER}/hosts" ]; then
+        cat ${BRDEXEC_DEFAULT_HOSTS_FOLDER}/hosts >> ${BRDEXEC_HOSTS_FILE}
       fi
     ;;
   esac
@@ -912,7 +916,7 @@ brdexec_getopts_main () { verbose -s "brdexec_getopts_main ${@}"
               BRDEXEC_HOSTSLIST_EXCLUDE="${BRDEXEC_HOSTSLIST_EXCLUDE} ${1}"; shift ;;
           esac ;;
 
-        -H | --hosts) shift
+        -H | --hosts | -L) shift
           case ${1} in
             -* | "")
               brdexec_usage ;;
@@ -1141,6 +1145,12 @@ brdexec_variables_init () { verbose -s "brdexec_variables_init ${@}"
   fi
   if [ -z "${BRDEXEC_HUMAN_READABLE_REPORT}" ] || [ "${BRDEXEC_HUMAN_READABLE_REPORT}" != "no" 2>/dev/null ]; then
     BRDEXEC_HUMAN_READABLE_REPORT=yes
+  fi
+
+  if [ -z "${BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER_MAX}" ]; then
+    BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER_MAX=200
+  elif [ ! "${BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER_MAX}" -eq "${BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER_MAX}" 2>/dev/null ]; then
+    BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER_MAX=200
   fi
 
   ### Loading default as defined option if no script parameter is selected
@@ -1659,14 +1669,23 @@ brdexec_make_temporary_script () {
     BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_SCRIPT_EMBEDED}"
     while read BRDEXEC_SCRIPT_EMBEDED_LINE
     do
-      if [ "$(echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" | grep -c ^BRDEXEC_)" -eq 1 ]; then
-        while read BRDEXEC_SCRIPT_SUPPORTED_VARIABLE
-        do
-          if [ "$(echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" | awk -F "=" '{print $1}')" = "$(echo "${BRDEXEC_SCRIPT_SUPPORTED_VARIABLE}" | awk -F "=" '{print $1}')" ]; then
-            echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" > ${BRDEXEC_SCRIPT_EMBEDED}
-            . ${BRDEXEC_SCRIPT_EMBEDED}
-          fi
-        done < ./etc/enhanced_script_supported_variables.db
+      if [ "$(echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" | grep -c ^BRDEXEC_ | awk -F "=" '{print $1}')" -eq 1 ]; then
+
+        unset BRDEXEC_EMBEDED_VAR
+        BRDEXEC_EMBEDED_VAR="$(echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" | awk -F "=" '{print $1}')"
+        if [ "$(grep -wc "^${BRDEXEC_EMBEDED_VAR}$" ./etc/enhanced_script_supported_variables.db)" -eq 1 ]; then
+          #FIXME secure the line loaded better
+          echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" > ${BRDEXEC_SCRIPT_EMBEDED}
+          . ${BRDEXEC_SCRIPT_EMBEDED}
+        fi
+
+        #while read BRDEXEC_SCRIPT_SUPPORTED_VARIABLE
+        #do
+        #  if [ "$(echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" | awk -F "=" '{print $1}')" = "$(echo "${BRDEXEC_SCRIPT_SUPPORTED_VARIABLE}" | awk -F "=" '{print $1}')" ]; then
+        #    echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" > ${BRDEXEC_SCRIPT_EMBEDED}
+        #    . ${BRDEXEC_SCRIPT_EMBEDED}
+        #  fi
+        #done < ./etc/enhanced_script_supported_variables.db
       fi
     done < ${BRDEXEC_TMP_SCRIPT}
     rm ${BRDEXEC_SCRIPT_EMBEDED}
@@ -1899,9 +1918,9 @@ brdexec_usage () { verbose -s "brdexec_usage  ${@}"
   >&2 echo -e 'BROADEXEC HELP\n
 When run without options, broadexec will display menu to choose hosts file, if present custom filters found in second column of customer hosts file and also script to run and execute it.
 Available options:
-  -h, --hostslist [HOSTS_FILE]
+  -l, --hostslist [HOSTS_FILE]
     Only supported hosts files are located in folder specified by BRDEXEC_DEFAULT_SCRIPTS_FOLDER variable in conf file. They can be 1 column lists with hostname or 2 column ones also with IP. When hosts file is with IP, IP will be used to connect throught ssh and hostname to display output and create reports.
-  -H, --hosts [HOST1,HOST2,...]
+  -L, --hosts [HOST1,HOST2,...]
     Do not use host lists, but use provided hosts. Multiple -H parameters are supported.
   -f, --filter [PHRASE]
     optional for -l parameter. Set filter word specified in second column of hosts file for each customer, eg prod, test etc. If filters are divided by comma they are used for third,fourth etc column.
@@ -2089,18 +2108,29 @@ brdexec_display_error_log () { verbose -s "brdexec_display_error_log ${@}"
 #305
 brdexec_repair_missing_known_hosts () {
 
+  local BRDEXEC_TEMP_OUTPUT
+
   #FIXME make better standards... :/
   BRDEXEC_SERVER="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
   brdexec_extract_username_port_from_hostname
   BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="${BRDEXEC_SERVER}"
 
-  ### reset variabe for checking default hosts file
+  ### reset variable for checking default hosts file
   unset BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME
 
   ### checking hostname against broadexec hosts file
-  if [ "$(grep -ic "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ${BRDEXEC_HOSTS_FILE} 2>/dev/null)" -gt 0 ] 2>/dev/null; then
+  ### awk is used to find exact match of server name in 2nd field and tail prints last occurence
+  if BRDEXEC_TEMP_OUTPUT="$(grep -v "^#" ${BRDEXEC_HOSTS_FILE} | tr '[A-Z]' '[a-z]' | awk -v server="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" '($2 == server) {print $1}' | tail -n 1)"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
-    BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="$(grep -i "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ${BRDEXEC_HOSTS_FILE} | head -n 1 | awk '{print $1}')"
+    BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="${BRDEXEC_TEMP_OUTPUT}"
+  ### or against ~/.ssh/config
+  ### awk is used to find exact match of server name in 2nd field, where 1st field is "Host", then it reads 5 consecutive lines and if line matches "Hostname" string in the 1st field, it prints 2nd field, where IP is expected; tail prints last occurence
+  elif BRDEXEC_TEMP_OUTPUT="$(grep -v "^#" ~/.ssh/config 2>/dev/null | tr '[A-Z]' '[a-z]' | awk -v server=${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} '($1 == "host") && ($2 == server) {for(i=1; i<=5; i++) {getline; if($1=="host"){break;} else if($1=="hostname"){print $2; break;}}}' | tail -n 1)"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
+    BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
+    BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="${BRDEXEC_TEMP_OUTPUT}"
+  elif BRDEXEC_TEMP_OUTPUT="$(getent hosts "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" | awk '{print $1}')"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
+    BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
+    BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="${BRDEXEC_TEMP_OUTPUT}"
   fi
 
   if [ "${1}" = "shout" ]; then
@@ -2108,33 +2138,49 @@ brdexec_repair_missing_known_hosts () {
   fi
 
   ### checking if current host is missing from known hosts
-  if [ "$(awk '{print $1}' ~/.ssh/known_hosts 2>/dev/null | grep -c ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER})" -eq 0 ]; then
+  if [ ! -e ~/.ssh/known_hosts ] || [ -z "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" ]; then
+    return 1
+  fi
+  if [ "$(awk '{print $1}' ~/.ssh/known_hosts 2>/dev/null | grep -wc ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER})" -eq 0 ]; then
     if [ "${1}" = "shout" ]; then
       brdexec_display_output "Executing keyscan on host ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" 1
     fi
-    ssh-keyscan -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEC_SSH_PORT_CONNECTION} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} >/dev/null 2>&1
-    if [ "$?" -eq 0 ]; then
+    if [ "$(ssh-keyscan -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEC_SSH_PORT_CONNECTION} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER},${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} 2>/dev/null | wc -l)" -ne 0 ]; then
 
       ### adding keys to knownhosts
-      brdexec_display_output "  Adding ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} to ~/.ssh/known_hosts" 2
+      brdexec_display_output "  Adding ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER},${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} to ~/.ssh/known_hosts" 2
       touch ${BRDEXEC_KNOWN_HOSTS_MESSAGE}
-      ssh-keyscan -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEC_SSH_PORT_CONNECTION} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} 2>/dev/null >> ~/.ssh/known_hosts
+      ssh-keyscan -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEC_SSH_PORT_CONNECTION} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER},${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} 2>/dev/null >> ~/.ssh/known_hosts
 
-      ### NOTE: NO checking, error will be sorted via broadexec error collection
+      #### add also hostname with IP address
+      #if [ ! -z "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" ]; then
+      #  if [ "$(grep -c ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ~/.ssh/known_hosts)" -gt 0 ]; then
+      #    brdexec_display_output "  Adding ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} to ~/.ssh/known_hosts" 2
+      #    touch ${BRDEXEC_KNOWN_HOSTS_MESSAGE}
+      #    BRDEXEX_MISSING_KNOWN_HOSTS_TEMP="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
+      #    BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP}"
+      #    BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER="$(grep -n ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ~/.ssh/known_hosts | head -n 1 | awk -F ":" '{print $1}')"
 
-      ### add also hostname with IP address
-      if [ ! -z "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" ]; then
-        if [ "$(grep -c ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ~/.ssh/known_hosts)" -gt 0 ]; then
-          brdexec_display_output "  Adding ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} to ~/.ssh/known_hosts" 2
-          touch ${BRDEXEC_KNOWN_HOSTS_MESSAGE}
-          BRDEXEX_MISSING_KNOWN_HOSTS_TEMP="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-          BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP}"
-          BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER="$(grep -n ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ~/.ssh/known_hosts | head -n 1 | awk -F ":" '{print $1}')"
-
-          ### I am very proud of the following line, but don't remember why!
-          awk -v linenumber="${BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER}" -v hostname="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" '{if(NR==linenumber){$1=$1","hostname; print}else{print}}' ~/.ssh/known_hosts > ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP} && mv ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP} ~/.ssh/known_hosts
-        fi
-      fi
+      #    if [ ! -f "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file" ]; then
+      #      touch "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file"
+      #    else
+      #      local BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER=0
+      #      while [ -f "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file" ]; do
+      #        sleep 0.1 2>/dev/null || sleep 1
+      #        ((BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER+=1))
+      #        if [ "${BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER}" -gt "${BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER_MAX}" ]; then
+      #  	log "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} Unable to obtain lock for known hosts lockfile" 1
+      #  	brdexec_display_output "  Warning: Unable to obtain lock when adding ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} to the known hosts" 2
+      #  	return 1
+      #        fi
+      #      done
+      #      touch "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file"
+      #    fi
+      #    ### I am very proud of the following line, but don't remember why!
+      #    awk -v linenumber="${BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER}" -v hostname="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" '{if(NR==linenumber){$1=$1","hostname; print}else{print}}' ~/.ssh/known_hosts > ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP} && mv ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP} ~/.ssh/known_hosts
+      #    rm -f "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file"
+      #  fi
+      #fi
     else
       log "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} problem getting fingerprint information" 1
       if [ "${1}" = "shout" ]; then
@@ -2306,6 +2352,18 @@ brdexec_interruption_ctrl_c () { verbose -s "brdexec_interruption_ctrl_c ${@}"
     done
   fi
 
+  ### Killing hanged known hosts pids
+  for BRDEXEC_KNOWN_HOSTS_PID in ${BRDEXEC_KNOWN_HOSTS_PIDS}; do
+    ps -p ${BRDEXEC_KNOWN_HOSTS_PID} >/dev/null
+    disown ${BRDEXEC_KNOWN_HOSTS_PID}
+    kill -9 ${BRDEXEC_KNOWN_HOSTS_PID} >/dev/null 2>&1
+  done
+  #FIXME remove when lockfile is not used anymore
+  ### Removing lock file
+  if [ -e "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file" ]; then
+    rm -f "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file"
+  fi
+
   ### Removing any other temp files
   if [ "${BRDEXEC_EXIT_IN_PROGRESS}" != "yes" ]; then
     echo -e "Removing temporary files      "
@@ -2359,16 +2417,16 @@ brdexec_questions () { verbose -s "brdexec_questions ${@}"
         BRDEXEC_QUESTION_CHECK_NUMBER="$(echo "${BRDEXEC_SCRIPT_QUESTION_LINE}" | awk -F "=" '{print $1}' | awk -F "_" '{print NF}')"
 
         ### get question options and parameter name for script and invalidate question in case it is not in correct format
-        if [ "${BRDEXEC_QUESTION_CHECK_NUMBER}" -eq 7 ]; then
-          BRDEXEC_QUESTION_OPTION="$(echo "${BRDEXEC_SCRIPT_QUESTION_LINE}" | awk -F "=" '{print $1}' | awk -F "_" '{print $6}')"
+        if [ "${BRDEXEC_QUESTION_CHECK_NUMBER}" -eq 5 ]; then
+          BRDEXEC_QUESTION_OPTION="$(echo "${BRDEXEC_SCRIPT_QUESTION_LINE}" | awk -F "=" '{print $1}' | awk -F "_" '{print $4}')"
           if [ "${BRDEXEC_QUESTION_OPTION}" != "r" ] && [ "${BRDEXEC_QUESTION_OPTION}" != "o" ] && [ "${BRDEXEC_QUESTION_OPTION}" != "b" ]; then
             BRDEXEC_SCRIPT_QUESTION_LINE_VALID="no"
           fi
-          BRDEXEC_QUESTION_PARAMETER_NAME="$(echo "${BRDEXEC_SCRIPT_QUESTION_LINE}" | awk -F "=" '{print $1}' | awk -F "_" '{print $7}')"
+          BRDEXEC_QUESTION_PARAMETER_NAME="$(echo "${BRDEXEC_SCRIPT_QUESTION_LINE}" | awk -F "=" '{print $1}' | awk -F "_" '{print $5}')"
         else
           BRDEXEC_SCRIPT_QUESTION_LINE_VALID="no"
         fi
-        if [ "${BRDEXEC_QUESTION_CHECK_NUMBER}" -eq 8 ]; then
+        if [ "${BRDEXEC_QUESTION_CHECK_NUMBER}" -eq 6 ]; then
           BRDEXEC_QUESTION_PARAMETER_DEFAULT="$(echo "${BRDEXEC_SCRIPT_QUESTION_LINE}" | awk -F "=" '{print $1}' | awk -F "_" '{print $8}')"
         fi
         BRDEXEC_QUESTION_CONTENT="$(echo "${BRDEXEC_SCRIPT_QUESTION_LINE}" | awk -F "=" '{print $2}' | awk -F "\"" '{print $2}')"
@@ -2616,7 +2674,7 @@ brdexec_admin_functions () { verbose -s "brdexec_admin_functions ${@}"
         break
       ;;
 
-      "Add hostnames and info from ${BRDEXEC_DEFAULT_HOSTS_FOLDER}/hosts and default/hosts/hosts to ~/.ssh/config - not included in check and fix all")
+      "Add hostnames and info from ${BRDEXEC_DEFAULT_HOSTS_FOLDER}/hosts to ~/.ssh/config - not included in check and fix all")
 
         if [ -s "${BRDEXEC_HOSTS_FILE}" ]; then
           if [ "$(grep -v ^# ${BRDEXEC_HOSTS_FILE} | grep -v "^$" | wc -l)" -gt 0 ]; then
@@ -3009,9 +3067,9 @@ brdexec_check_updates () { verbose -s "brdexec_check_updates ${@}"
     mkdir ./conf || display_error "474" 1
   fi
 
-  ### create hosts folder if missing
-  if [ ! -d ./hosts ]; then
-    mkdir ./hosts || display_error "475" 1
+  ### create hostslists folder if missing
+  if [ ! -d "${BRDEXEC_DEFAULT_HOSTS_FOLDER}" ]; then
+    mkdir "${BRDEXEC_DEFAULT_HOSTS_FOLDER}" || display_error "475" 1
   fi
 
   ### check config file
@@ -3058,21 +3116,21 @@ brdexec_check_updates () { verbose -s "brdexec_check_updates ${@}"
   #  done
   #fi
 
-  ### import public gpg keys
-  if [ -d etc/gpg_pubkeys ]; then
-    if [ "$(find etc/gpg_pubkeys/ -name *.gpg | tr '\n' ' ' | wc -w)" -gt 0 ]; then
-      if [ "${BRDEXEC_INSTALLED_NOW}" = "yes" ]; then
-        brdexec_display_output "  Importing GPG signature keys" 1
-      fi
-      gpg --import $(find etc/gpg_pubkeys/ -name *.gpg | tr '\n' ' ') 2>/dev/null
-    else
-      ### there are no keys provided
-      display_error "461" 1
-    fi
-  else
-    ### folder with keys does not exist
-    display_error "460" 1
-  fi
+  #### import public gpg keys
+  #if [ -d etc/gpg_pubkeys ]; then
+  #  if [ "$(find etc/gpg_pubkeys/ -name *.gpg | tr '\n' ' ' | wc -w)" -gt 0 ]; then
+  #    if [ "${BRDEXEC_INSTALLED_NOW}" = "yes" ]; then
+  #      brdexec_display_output "  Importing GPG signature keys" 1
+  #    fi
+  #    gpg --import $(find etc/gpg_pubkeys/ -name *.gpg | tr '\n' ' ') 2>/dev/null
+  #  else
+  #    ### there are no keys provided
+  #    display_error "461" 1
+  #  fi
+  #else
+  #  ### folder with keys does not exist
+  #  display_error "460" 1
+  #fi
 
   ### write to update log
   BRDEXEC_LOG_CHECK_UPDATES_GIT_UPDATE_INFO="$(cat "${BRDEXEC_LOG_CHECK_UPDATES_GIT_OUTPUT}" 2>/dev/null | sed ':a;N;$!ba;s/\n/ /g')"
@@ -3155,8 +3213,8 @@ brdexec_create_config_file () {
   if [ ! -d ./conf ]; then
    mkdir ./conf || display_error "474" 1
   fi
-  if [ ! -d ./hosts ]; then
-    mkdir ./hosts || display_error "475" 1
+  if [ ! -d "${BRDEXEC_DEFAULT_HOSTS_FOLDER}" ]; then
+    mkdir "${BRDEXEC_DEFAULT_HOSTS_FOLDER}" || display_error "475" 1
   fi
   echo "Getting files from team group repository"
   if [ "$(grep -c "^BRDEXEC_SSH_PORT" conf/broadexec.conf 2>/dev/null)" -lt 1 ] 2>/dev/null || [ ! -f broadexec.conf ]; then
@@ -3199,7 +3257,7 @@ brdexec_create_config_file () {
   echo "BRDEXEC_TEAM_CONFIG=${BRDEXEC_TEAM_CONFIG}" >> conf/broadexec.conf
   echo -e "\nCreating links to team folder"
 
-  for BRDEXEC_TEAM_CONFIG_SUBFOLDER in conf hosts scripts
+  for BRDEXEC_TEAM_CONFIG_SUBFOLDER in conf "${BRDEXEC_DEFAULT_HOSTS_FOLDER}" scripts
   do
     if [ -d "${BRDEXEC_TEAM_CONFIG_SUBFOLDER}" ]; then
       cd "${BRDEXEC_TEAM_CONFIG_SUBFOLDER}"

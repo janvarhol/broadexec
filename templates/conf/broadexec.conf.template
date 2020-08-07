@@ -1,6 +1,6 @@
 #FIXME check if following variables exist and if can be deleted
-#BRDEXEC_DEFAULT_HOSTS_FOLDER=hosts
-#BRDEXEC_DEFAULT_TEAMCONFIG_HOSTS_FOLDER=hosts
+#BRDEXEC_DEFAULT_HOSTS_FOLDER=lists
+#BRDEXEC_DEFAULT_TEAMCONFIG_HOSTS_FOLDER=lists
 #BRDEXEC_DEFAULT_HOSTS_FILE_PATH default=none
 #BRDEXEC_DEFAULT_HOSTS_FILE_PATH=${BRDEXEC_DEFAULT_TEAMCONFIG_HOSTS_FOLDER}/customer-test
 #BRDEXEC_DEFAULT_SCRIPTS_FOLDER=
@@ -24,9 +24,11 @@ BRDEXEC_USER_SSH_KEY=~/.ssh/id_rsa
 
 ### Shell for calling the script ###
 ### Following values are available:
-### sudo - call script using "sudo su - -c"
+### sudo - call script using "sudo"
+### sudosu - call script using "sudo su - -c"
 ### secured_sudo  -see below for special use
 ### sh - call script using "sh -c"
+### Note, ssh runs without -t option, so in case of running with sudo, "Defaults requiretty" cannot be in /etc/sudoers, or it must be negated with "Defaults:user !requiretty"
 ### Default: sh
 BRDEXEC_RUNSHELL=sh
 
@@ -52,13 +54,13 @@ BRDEXEC_DEFAULT_TEAMCONFIG_FOLDER=teamconfigs/${BRDEXEC_TEAM}
 ###################
 
 ### Path to hostfiles, each host should be on new line. 
-BRDEXEC_DEFAULT_HOSTS_FOLDER=hosts
+BRDEXEC_DEFAULT_HOSTS_FOLDER=lists
 #default FOLDER where "hosts" file and custom hosts files are looked for
 #this FOLDER name is relative to broadexec root and BRDEXEC_DEFAULT_TEAMCONFIG_FOLDER
 #same lookup is done in ${BRDEXEC_DEFAULT_TEAMCONFIG_FOLDER}/${BRDEXEC_DEFAULT_HOSTS_FOLDER} if BRDEXEC_TEAM_CONFIG is set
 
 ### Path to default hostfile to be used when no -h or -H parameters are used
-BRDEXEC_DEFAULT_HOSTS_FILE_PATH=hosts/hosts.default
+BRDEXEC_DEFAULT_HOSTS_FILE_PATH=lists/hosts.default
 
 ### path to file with error blacklist
 BRDEXEC_ERROR_BLACKLIST_FILE=$BRDEXEC_TEAMCONFIG_FOLDER/broadexec_error_blacklist.conf
@@ -84,6 +86,9 @@ BRDEXEC_PROCESS_KILL_TIMEOUT=1
 
 ### timeout for wait after CTRL+C command
 BRDEXEC_CTRLC_PROCESS_KILL_TIMEOUT=2
+
+### number of retries to check lock file for known hosts, default is 200
+BRDEXEX_KNOWN_HOSTS_LOCK_COUNTER_MAX=200
 
 ##################
 #### SETTINGS ####

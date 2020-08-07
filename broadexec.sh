@@ -161,7 +161,8 @@ fi
 verbose 126 2
 
 ### verify script signature
-brdexec_load_plugin brdexec_verify_script_signature
+#brdexec_load_plugin brdexec_verify_script_signature
+brdexec_execute_plugin_hooks brdexec_before_script_manipulation
 
 brdexec_create_hosts_list_based_on_filter
 
@@ -171,6 +172,7 @@ BRDEXEC_KNOWN_HOSTS_MESSAGE="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
 rm "${BRDEXEC_KNOWN_HOSTS_MESSAGE}"
 for BRDEXEX_MISSING_KNOWN_HOSTS_SERVER in ${BRDEXEC_SERVERLIST_LOOP}; do
   brdexec_repair_missing_known_hosts &
+  BRDEXEC_KNOWN_HOSTS_PIDS+=" $!"
 done
 
 wait ### for known hosts
