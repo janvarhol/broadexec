@@ -42,7 +42,7 @@ fi
 BRDEXEC_CONFIG_CLEAN="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
 BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_CONFIG_CLEAN}"
 if [ "$(md5sum ./etc/config_file_valid_entries.db 2>/dev/null | awk '{print $1}')" = "8773c6a7b20a12d10fca2f2ea16f87b7" 2>/dev/null ] && [ -f "./conf/broadexec.conf" ]; then
-  egrep -v "^#|^$" ./conf/broadexec.conf > ${BRDEXEC_CONFIG_CLEAN}
+  grep -v "^#" ./conf/broadexec.conf | grep -v "^$" > ${BRDEXEC_CONFIG_CLEAN}
   while read BRDEXEC_CONFIG_LINE; do
     BRDEXEC_CONFIG_LINE_ITEM="$(echo "${BRDEXEC_CONFIG_LINE}" | awk -F "=" '{print $1}')"
     if [ "$(grep -c "${BRDEXEC_CONFIG_LINE_ITEM}" ./etc/config_file_valid_entries.db)" -gt 0 ]; then
@@ -60,7 +60,7 @@ fi
 ### connect team config file
 if [ ! -z "${BRDEXEC_TEAM_CONFIG}" ] && [ -e "conf/${BRDEXEC_TEAM_CONFIG}" ] && [ -f "conf/${BRDEXEC_TEAM_CONFIG}/broadexec.conf" ]; then
   if [ "$(md5sum ./etc/config_file_valid_entries.db 2>/dev/null | awk '{print $1}')" = "8773c6a7b20a12d10fca2f2ea16f87b7" ]; then
-    egrep -v "^#|^$" ./conf/${BRDEXEC_TEAM_CONFIG}/broadexec.conf > ${BRDEXEC_CONFIG_CLEAN}
+    grep -v "^#" ./conf/${BRDEXEC_TEAM_CONFIG}/broadexec.conf | grep -v "^$" > ${BRDEXEC_CONFIG_CLEAN}
     while read BRDEXEC_CONFIG_LINE; do
       BRDEXEC_CONFIG_LINE_ITEM="$(echo "${BRDEXEC_CONFIG_LINE}" | awk -F "=" '{print $1}')"
       if [ "$(grep -c "${BRDEXEC_CONFIG_LINE_ITEM}" ./etc/config_file_valid_entries.db)" -gt 0 ]; then
