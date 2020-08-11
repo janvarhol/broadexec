@@ -688,8 +688,8 @@ brdexec_hosts () {
       if [ -f "${BRDEXEC_DEFAULT_HOSTS_FOLDER}/hosts" ]; then
         cat "${BRDEXEC_DEFAULT_HOSTS_FOLDER}/hosts" >> ${BRDEXEC_HOSTS_FILE}
       fi
-      if [ -f "${BRDEXEC_DEFAULT_HOSTS_FOLDER}/hosts" ]; then
-        cat ${BRDEXEC_DEFAULT_HOSTS_FOLDER}/hosts >> ${BRDEXEC_HOSTS_FILE}
+      if [ -f "${BRDEXEC_DEFAULT_HOSTS_FOLDER}/${BRDEXEC_TEAM_CONFIG}/hosts" ]; then
+        cat "${BRDEXEC_DEFAULT_HOSTS_FOLDER}/${BRDEXEC_TEAM_CONFIG}/hosts" >> ${BRDEXEC_HOSTS_FILE}
       fi
     ;;
   esac
