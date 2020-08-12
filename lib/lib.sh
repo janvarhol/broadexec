@@ -666,7 +666,7 @@ brdexec_hosts () {
           fi
 
           BRDEXEC_SERVERLIST_CHOSEN="${BRDEXEC_HOSTLIST_CHOSEN_ITEM}"
-          BRDEXEC_SELECTED_PARAMETERS_INFO="${BRDEXEC_SELECTED_PARAMETERS_INFO} -h ${BRDEXEC_HOSTLIST_CHOSEN_ITEM}"
+          BRDEXEC_SELECTED_PARAMETERS_INFO="${BRDEXEC_SELECTED_PARAMETERS_INFO} -l ${BRDEXEC_HOSTLIST_CHOSEN_ITEM}"
 
           ### run selection of filter
           #FIXME temporarily disabled filter menu selection as it was quite buggy on more complicated hostlists and needs total rework...
@@ -1110,7 +1110,7 @@ brdexec_variables_init () { verbose -s "brdexec_variables_init ${@}"
   ### setting defaut value for error blacklist
   if [ -z "${BRDEXEC_ERROR_BLACKLIST_FILE}" ]; then
     if [ ! -z "${BRDEXEC_TEAM_CONFIG}" ]; then
-      BRDEXEC_ERROR_BLACKLIST_FILE="./teamconfigs/${BRDEXEC_TEAM_CONFIG}/broadexec_error_blacklist.conf"
+      BRDEXEC_ERROR_BLACKLIST_FILE="./conf/${BRDEXEC_TEAM_CONFIG}/broadexec_error_blacklist.conf"
     else
       BRDEXEC_ERROR_BLACKLIST_FILE="./conf/broadexec_error_blacklist.conf"
     fi
@@ -2787,7 +2787,7 @@ EOF
   chmod 755 ${SSH_ASKPASS_SCRIPT}
 
   if [ "${1}" = "from_teamconfig" ] || [ "${1}" = "delete_particular" ]; then
-    if [ "$(ls -1 ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/ 2>/dev/null | grep ".pub$" | wc -l)" -eq 0 ]; then
+    if [ "$(ls -1 ./conf/${BRDEXEC_TEAM_CONFIG}/.ssh/ 2>/dev/null | grep ".pub$" | wc -l)" -eq 0 ]; then
       >&2 echo "No ssh keys found in teamconfig folder."
       exit 0
     fi
@@ -2833,9 +2833,9 @@ EOF
 
   if [ "${1}" = "delete_particular" ]; then
     unset PS3
-    select BRDEXEC_SSH_KEY_TO_BE_DELETED in $(ls -1 ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/ 2>/dev/null | grep ".pub$")
+    select BRDEXEC_SSH_KEY_TO_BE_DELETED in $(ls -1 ./conf/${BRDEXEC_TEAM_CONFIG}/.ssh/ 2>/dev/null | grep ".pub$")
     do
-      if [ "$(ls -1 ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/ 2>/dev/null | grep ".pub$" | wc -l)" -lt "${REPLY}" ] 2>/dev/null; then
+      if [ "$(ls -1 ./conf/${BRDEXEC_TEAM_CONFIG}/.ssh/ 2>/dev/null | grep ".pub$" | wc -l)" -lt "${REPLY}" ] 2>/dev/null; then
         display_error "420" 1
       fi
       if ! [ "${REPLY}" -eq "${REPLY}" ] 2>/dev/null; then
@@ -2844,7 +2844,7 @@ EOF
       if [ "${REPLY}" -lt 0 ]; then
         display_error "420" 1
       fi
-      brdexec_display_output "./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_SSH_KEY_TO_BE_DELETED} was selected\n" 255
+      brdexec_display_output "./conf/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_SSH_KEY_TO_BE_DELETED} was selected\n" 255
       break
     done
   fi
@@ -2889,15 +2889,15 @@ EOF
     ### adding ssh keys from teamfolder
     else
       if [ "${1}" = "from_teamconfig" ]; then
-        for BRDEXEC_TEAM_SSH_KEY in $(ls -1 ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/ 2>/dev/null| grep ".pub$")
+        for BRDEXEC_TEAM_SSH_KEY in $(ls -1 ./conf/${BRDEXEC_TEAM_CONFIG}/.ssh/ 2>/dev/null| grep ".pub$")
         do
           ### check if passwordless connection is working or not
           BRDEXEC_REMOTE_AUTHORIZED_KEYS="$(ssh -q -o StrictHostKeyChecking=yes -o BatchMode=yes -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_USER}@${BRDEXEC_SERVER} "cat ~/.ssh/authorized_keys")"
-          BRDEXEC_LOCAL_PUBLIC_KEY="$(cat ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_TEAM_SSH_KEY})"
+          BRDEXEC_LOCAL_PUBLIC_KEY="$(cat ./conf/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_TEAM_SSH_KEY})"
           ### if not try to add ssh key
           if [ "$(echo "${BRDEXEC_REMOTE_AUTHORIZED_KEYS}" | grep -c "${BRDEXEC_LOCAL_PUBLIC_KEY}")" -eq 0 ]; then
-            echo -e "===============================================\nAdding SSH key ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_TEAM_SSH_KEY} for ${BRDEXEC_SERVER}"
-            echo $BRDEXEC_ADMPWD | $SSH_ASKPASS_SCRIPT ssh -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o PasswordAuthentication=yes ${BRDEXEC_USER}@${BRDEXEC_SERVER} "echo $(cat ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_TEAM_SSH_KEY}) >> ~/.ssh/authorized_keys"
+            echo -e "===============================================\nAdding SSH key ./conf/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_TEAM_SSH_KEY} for ${BRDEXEC_SERVER}"
+            echo $BRDEXEC_ADMPWD | $SSH_ASKPASS_SCRIPT ssh -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o PasswordAuthentication=yes ${BRDEXEC_USER}@${BRDEXEC_SERVER} "echo $(cat ./conf/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_TEAM_SSH_KEY}) >> ~/.ssh/authorized_keys"
             if [ "$?" -ne 0 ]; then
               >&2 echo "There was problem adding ssh keys, check manually."
             else
@@ -2908,10 +2908,10 @@ EOF
 
       ### remove particular ssh key from hosts
       elif [ "${1}" = "delete_particular" ]; then
-        BRDEXEC_REMOTE_SSH_KEY_TO_DELETE_FOUND="$(ssh -q -o StrictHostKeyChecking=yes -o BatchMode=yes -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_USER}@${BRDEXEC_SERVER} "grep -c \"$(cat ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_SSH_KEY_TO_BE_DELETED})\" ~/.ssh/authorized_keys")"
+        BRDEXEC_REMOTE_SSH_KEY_TO_DELETE_FOUND="$(ssh -q -o StrictHostKeyChecking=yes -o BatchMode=yes -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_USER}@${BRDEXEC_SERVER} "grep -c \"$(cat ./conf/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_SSH_KEY_TO_BE_DELETED})\" ~/.ssh/authorized_keys")"
         if [ "${BRDEXEC_REMOTE_SSH_KEY_TO_DELETE_FOUND}" -gt 0 2>/dev/null ]; then
-          echo -e "===============================================\nDeleting SSH key ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_SSH_KEY_TO_BE_DELETED} from ${BRDEXEC_SERVER}"
-          echo $BRDEXEC_ADMPWD | $SSH_ASKPASS_SCRIPT ssh -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o PasswordAuthentication=yes ${BRDEXEC_USER}@${BRDEXEC_SERVER} "BRDEXEC_DEL_TMP_KEY=\"\$(mktemp /tmp/broadexec.XXXXXXXXXX)\"; grep -v \"$(cat ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_SSH_KEY_TO_BE_DELETED} | awk '{print $2}')\" ~/.ssh/authorized_keys >> \${BRDEXEC_DEL_TMP_KEY}; mv \${BRDEXEC_DEL_TMP_KEY} ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys "
+          echo -e "===============================================\nDeleting SSH key ./conf/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_SSH_KEY_TO_BE_DELETED} from ${BRDEXEC_SERVER}"
+          echo $BRDEXEC_ADMPWD | $SSH_ASKPASS_SCRIPT ssh -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o PasswordAuthentication=yes ${BRDEXEC_USER}@${BRDEXEC_SERVER} "BRDEXEC_DEL_TMP_KEY=\"\$(mktemp /tmp/broadexec.XXXXXXXXXX)\"; grep -v \"$(cat ./conf/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_SSH_KEY_TO_BE_DELETED} | awk '{print $2}')\" ~/.ssh/authorized_keys >> \${BRDEXEC_DEL_TMP_KEY}; mv \${BRDEXEC_DEL_TMP_KEY} ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys "
           if [ "$?" -ne 0 ]; then
             >&2 echo "There was problem deleting ssh keys, check manually."
           else
@@ -3096,21 +3096,21 @@ brdexec_check_updates () { verbose -s "brdexec_check_updates ${@}"
   ### check and fix links
   #if [ ! -z "${BRDEXEC_TEAM_CONFIG}" ] || [ "${BRDEXEC_INSTALLED_NOW}" = "yes" ]; then
   #  ### check if default link is correct
-  #  if [ "$(ls -la ./default 2>/dev/null | awk -F " -> " '{print $2}')" != "./teamconfigs/${BRDEXEC_TEAM_CONFIG}" ]; then
+  #  if [ "$(ls -la ./default 2>/dev/null | awk -F " -> " '{print $2}')" != "./conf/${BRDEXEC_TEAM_CONFIG}" ]; then
   #    if [ "${BRDEXEC_INSTALLED_NOW}" = "yes" ]; then
-  #      brdexec_display_output "Fixing default link to teamconfigs/${BRDEXEC_TEAM_CONFIG}" 1
+  #      brdexec_display_output "Fixing default link to conf/${BRDEXEC_TEAM_CONFIG}" 1
   #    fi
   #    if [ -h ./default ]; then
   #      unlink ./default 2>/dev/null
   #    fi
-  #    ln -s ./teamconfigs/${BRDEXEC_TEAM_CONFIG} ./default 2>/dev/null
+  #    ln -s ./conf/${BRDEXEC_TEAM_CONFIG} ./default 2>/dev/null
   #  fi
   #  for BRDEXEC_TEAM_CONFIG_SUBFOLDER in conf hosts scripts
   #  do
   #    if [ -d "${BRDEXEC_TEAM_CONFIG_SUBFOLDER}" ]; then
   #      if [ ! -h "${BRDEXEC_TEAM_CONFIG_SUBFOLDER}/${BRDEXEC_TEAM_CONFIG}" ]; then
-  #        echo "Creating link ${BRDEXEC_TEAM_CONFIG_SUBFOLDER}/${BRDEXEC_TEAM_CONFIG} to teamconfigs/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER}"
-  #        ln -s ../teamconfigs/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER} ${BRDEXEC_TEAM_CONFIG_SUBFOLDER}/${BRDEXEC_TEAM_CONFIG}
+  #        echo "Creating link ${BRDEXEC_TEAM_CONFIG_SUBFOLDER}/${BRDEXEC_TEAM_CONFIG} to conf/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER}"
+  #        ln -s ../conf/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER} ${BRDEXEC_TEAM_CONFIG_SUBFOLDER}/${BRDEXEC_TEAM_CONFIG}
   #      fi
   #    fi
   #  done
@@ -3157,8 +3157,8 @@ brdexec_check_updates () { verbose -s "brdexec_check_updates ${@}"
   ### disabled, but left for possible future use
   ##############
   ### write username of linux admin user into config in case team folder is not available
-#  if [ -z "${BRDEXEC_TEAM_CONFIG}" ] || [ ! -f "./teamconfigs/${BRDEXEC_TEAM_CONFIG}/conf/broadexec.conf" ]; then
-#  #if [ "$(grep -c "^BRDEXEC_USER" ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/conf/broadexec.conf)" -eq 0 ]; then
+#  if [ -z "${BRDEXEC_TEAM_CONFIG}" ] || [ ! -f "./conf/${BRDEXEC_TEAM_CONFIG}/conf/broadexec.conf" ]; then
+#  #if [ "$(grep -c "^BRDEXEC_USER" ./conf/${BRDEXEC_TEAM_CONFIG}/conf/broadexec.conf)" -eq 0 ]; then
 #    if [ -f "conf/broadexec.conf" ]; then
 #      if [ "$(grep -c "^BRDEXEC_USER" conf/broadexec.conf)" -eq 0 ]; then
 #        echo -e "\nEnter user name of admin user present on all hosts with admin rights:"
@@ -3192,10 +3192,10 @@ brdexec_admin_ask_password () {
   else
     display_error "413" 1
   fi
-  if [ -f "./teamconfigs/${BRDEXEC_TEAM_CONFIG}/etc/shadow" ]; then
+  if [ -f "./conf/${BRDEXEC_TEAM_CONFIG}/etc/shadow" ]; then
     ### check shadow file hash and signature
 
-    BRDEXEC_ADMIN_PASSWORD_STORE="$(grep "^${BRDEXEC_ADMIN_USERNAME}" ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/etc/shadow | head -n 1 | awk -F ":" '{print $2}')"
+    BRDEXEC_ADMIN_PASSWORD_STORE="$(grep "^${BRDEXEC_ADMIN_USERNAME}" ./conf/${BRDEXEC_TEAM_CONFIG}/etc/shadow | head -n 1 | awk -F ":" '{print $2}')"
   else
     display_error "410" 1
   fi
@@ -3234,7 +3234,7 @@ brdexec_create_config_file () {
   ### get list of team folders
   if [ "$(ls -1 teamconfigs 2>/dev/null | wc -l)" -gt 0 ]; then
     echo -e "\nSelect your team group"
-    select BRDEXEC_TEAM_CONFIG in $(ls -1 teamconfigs | grep -v brd-teams)
+    select BRDEXEC_TEAM_CONFIG in $(ls -1 teamconfigs)
     do
       if [ "$(ls -1 teamconfigs 2>/dev/null | wc -w)" -lt "${REPLY}" ] 2>/dev/null; then
         display_error "471" 1
@@ -3269,8 +3269,8 @@ brdexec_create_config_file () {
       fi
       cd ..
     fi
-    echo "Creating link ${BRDEXEC_TEAM_CONFIG_SUBFOLDER}/${BRDEXEC_TEAM_CONFIG} to teamconfigs/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER}"
-    ln -s ../teamconfigs/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER} ${BRDEXEC_TEAM_CONFIG_SUBFOLDER}/${BRDEXEC_TEAM_CONFIG}
+    echo "Creating link ${BRDEXEC_TEAM_CONFIG_SUBFOLDER}/${BRDEXEC_TEAM_CONFIG} to conf/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER}"
+    ln -s teamconfigs/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER} ${BRDEXEC_TEAM_CONFIG_SUBFOLDER}/${BRDEXEC_TEAM_CONFIG}
   done
   echo "Creating default link"
   if [ ! -h ./default 2>/dev/null ]; then
@@ -3278,8 +3278,7 @@ brdexec_create_config_file () {
   fi
 
   ### write username of admin user into config in case team folder is not available
-  if [ -z "${BRDEXEC_TEAM_CONFIG}" ] || [ ! -f "./teamconfigs/${BRDEXEC_TEAM_CONFIG}/conf/broadexec.conf" ]; then
-  #if [ "$(grep -c "^BRDEXEC_USER" ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/conf/broadexec.conf)" -eq 0 ]; then
+  if [ -z "${BRDEXEC_TEAM_CONFIG}" ] || [ ! -f "./conf/${BRDEXEC_TEAM_CONFIG}/broadexec.conf" ]; then
     if [ -f "conf/broadexec.conf" ]; then
       if [ "$(grep -c "^BRDEXEC_USER" conf/broadexec.conf)" -eq 0 ]; then
         echo -e "\nEnter user name of admin user present on all hosts with admin rights:"
