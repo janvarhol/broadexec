@@ -216,6 +216,27 @@ if [ ! -z "${BRDEXEC_SELECTED_PARAMETERS_INFO}" ]; then
   fi
 fi
 
+#### check if there is some hosts in generated hostslist
+#if [ "${BRDEXEC_PROXY}" = no ]; then
+#  if [ "$(echo "${BRDEXEC_SERVERLIST_LOOP}" | grep -v "^#" | grep -v ^$ | wc -l)" -eq 0 ]; then
+#    display_error "112" 1
+#  fi
+#fi
+
+### set status from init to running in stats file
+brdexec_update_stats -p run_init_counts
+
+brdexec_execute_plugin_hooks brdexec_before_ssh
+
+if [ "${BRDEXEC_PROXY}" = "yes" 2>/dev/null ]; then
+  BRDEXEC_DIRECTLY_LIST="$(echo "${BRDEXEC_SERVERLIST_CHOSEN}" | sed -e 's/all./directly./g')"
+  if [ -f "${BRDEXEC_DIRECTLY_LIST}" ]; then
+    BRDEXEC_SERVERLIST_LOOP="$(egrep -v "^#|^$" "${BRDEXEC_DIRECTLY_LIST}")"
+  else
+    BRDEXEC_SERVERLIST_LOOP=""
+  fi
+fi
+
 ### check if there is some hosts in generated hostslist
 if [ "${BRDEXEC_PROXY}" = no ]; then
   if [ "$(echo "${BRDEXEC_SERVERLIST_LOOP}" | grep -v "^#" | grep -v ^$ | wc -l)" -eq 0 ]; then
@@ -223,10 +244,6 @@ if [ "${BRDEXEC_PROXY}" = no ]; then
   fi
 fi
 
-### set status from init to running in stats file
-brdexec_update_stats -p run_init_counts
-
-brdexec_execute_plugin_hooks brdexec_before_ssh
 
 verbose 110 1
 for BRDEXEC_SERVER in ${BRDEXEC_SERVERLIST_LOOP}; do
