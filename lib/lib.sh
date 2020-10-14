@@ -2544,7 +2544,7 @@ limit_file_size () {
 brdexec_update_stats () {
 
   ### do not run stats if stats file is not in use
-  if [ ! -f "${BRDEXEC_STATS_FILE}" ]; then
+  if [ "${BRDEXEC_EXTERNAL}" != "yes" ] && [ ! -f "${BRDEXEC_STATS_FILE}" ]; then
     return 0
   fi
 
@@ -2568,6 +2568,10 @@ brdexec_update_stats () {
   if [ ! -z "${BRDEXEC_STATS_STATUS}" ]; then
     BRDEXEC_STATS_LAST_LINE="$(tail -n 1 ${BRDEXEC_STATS_FILE})"
     echo -e "STATE ${BRDEXEC_STATS_STATUS}\n${BRDEXEC_STATS_LAST_LINE}" > ${BRDEXEC_STATS_FILE}
+    if [ "${BRDEXEC_EXTERNAL}" = "yes" ]; then
+      >&3 echo -e "STATE ${BRDEXEC_STATS_STATUS}\n${BRDEXEC_STATS_LAST_LINE}"
+    fi
+
 
   ### write progress
   elif [ ! -z "${BRDEXEC_STATS_PROGRESS}" ]; then
@@ -2577,6 +2581,10 @@ brdexec_update_stats () {
       BRDEXEC_STATS_TOTAL="$(echo ${BRDEXEC_SERVERLIST_LOOP} | wc -w)"
       echo "STATE RUNNING" > ${BRDEXEC_STATS_FILE}
       echo "PROGRESS 0 ${BRDEXEC_STATS_TOTAL} 0 0" >> ${BRDEXEC_STATS_FILE}
+      if [ "${BRDEXEC_EXTERNAL}" = "yes" ]; then
+         >&3 echo "STATE RUNNING"
+         >&3 echo "PROGRESS 0 ${BRDEXEC_STATS_TOTAL} 0 0"
+      fi
 
     ### calculate progress from current provided value and time
     elif [ "${BRDEXEC_STATS_PROGRESS}" -eq "${BRDEXEC_STATS_PROGRESS}" ]; then
@@ -2601,6 +2609,10 @@ brdexec_update_stats () {
       BRDEXEC_STATS_FIRST_LINE="$(head -n 1 ${BRDEXEC_STATS_FILE})"
       echo "${BRDEXEC_STATS_FIRST_LINE}" > ${BRDEXEC_STATS_FILE}
       echo "PROGRESS ${BRDEXEC_STATS_PROGRESS_TOTAL} ${BRDEXEC_STATS_TOTAL} ${BRDEXEC_STATS_PERCENTAGE} ${BRDEXEC_STATS_SECONDS}" >> ${BRDEXEC_STATS_FILE}
+      if [ "${BRDEXEC_EXTERNAL}" = "yes" ]; then
+        >&3 echo "${BRDEXEC_STATS_FIRST_LINE}"
+        >&3 echo "PROGRESS ${BRDEXEC_STATS_PROGRESS_TOTAL} ${BRDEXEC_STATS_TOTAL} ${BRDEXEC_STATS_PERCENTAGE} ${BRDEXEC_STATS_SECONDS}"
+      fi
     fi
   fi
 
