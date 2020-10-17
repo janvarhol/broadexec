@@ -248,12 +248,16 @@ brdexec_script_menu_selection () { verbose -s "brdexec_script_menu_selection ${@
   fi
 
   BRDEXEC_LIST_OF_CUSTOM_PREDEFINED_SCRIPTS="$(ls -1 ${BRDEXEC_DEFAULT_SCRIPTS_FOLDER} 2>/dev/null | grep -v README | grep ".sh$" | tr '\n' ' ')"
-  ### create list with full relative paths
+  ### create list with full relative paths and exclude disabled scripts
   for BRDEXEC_TEAM_PREDEFINED_SCRIPT in ${BRDEXEC_LIST_OF_TEAM_PREDEFINED_SCRIPTS}; do
-    BRDEXEC_LIST_OF_PREDEFINED_SCRIPTS="${BRDEXEC_LIST_OF_PREDEFINED_SCRIPTS} ${BRDEXEC_DEFAULT_SCRIPTS_FOLDER}/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_PREDEFINED_SCRIPT}"
+    if [ "$(grep -wc "^BRDEXEC_SCRIPT_DISABLED" ${BRDEXEC_DEFAULT_SCRIPTS_FOLDER}/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_PREDEFINED_SCRIPT})" -eq 0 ]; then
+      BRDEXEC_LIST_OF_PREDEFINED_SCRIPTS="${BRDEXEC_LIST_OF_PREDEFINED_SCRIPTS} ${BRDEXEC_DEFAULT_SCRIPTS_FOLDER}/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_PREDEFINED_SCRIPT}"
+    fi
   done
   for BRDEXEC_CUSTOM_PREDEFINED_SCRIPT in ${BRDEXEC_LIST_OF_CUSTOM_PREDEFINED_SCRIPTS}; do
-    BRDEXEC_LIST_OF_PREDEFINED_SCRIPTS="${BRDEXEC_LIST_OF_PREDEFINED_SCRIPTS} ${BRDEXEC_DEFAULT_SCRIPTS_FOLDER}/${BRDEXEC_CUSTOM_PREDEFINED_SCRIPT}"
+    if [ "$(grep -wc "^BRDEXEC_SCRIPT_DISABLED" ${BRDEXEC_DEFAULT_SCRIPTS_FOLDER}/${BRDEXEC_CUSTOM_PREDEFINED_SCRIPT})" -eq 0 ]; then
+      BRDEXEC_LIST_OF_PREDEFINED_SCRIPTS="${BRDEXEC_LIST_OF_PREDEFINED_SCRIPTS} ${BRDEXEC_DEFAULT_SCRIPTS_FOLDER}/${BRDEXEC_CUSTOM_PREDEFINED_SCRIPT}"
+    fi
   done
   verbose 121 2
 
@@ -502,10 +506,6 @@ script_specific () {
       ### broadexec verbose output specifics
       verbose)
         case ${3} in
-          write_last_run_log)
-            [ -f "./etc/verbose.db" ] && . ./etc/verbose.db
-            echo "   VERBOSE[${4}]: ${VERBOSE_MESSAGE[$4]}" >> ${BRDEXEC_LOG_LAST_RUN}
-          ;;
           write_last_run_log_start)
             echo "   VERBOSE: Function ${4} START" >> ${BRDEXEC_LOG_LAST_RUN}
           ;;
@@ -1666,29 +1666,20 @@ brdexec_make_temporary_script () {
 
     ### check embeded variables and discard invalid ones
     BRDEXEC_SCRIPT_EMBEDED="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-    BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_SCRIPT_EMBEDED}"
+    BRDEXEC_EMBEDED_LINES="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
+    BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_SCRIPT_EMBEDED} ${BRDEXEC_EMBEDED_LINES}"
+    grep ^BRDEXEC_ ${BRDEXEC_TMP_SCRIPT} > ${BRDEXEC_EMBEDED_LINES}
     while read BRDEXEC_SCRIPT_EMBEDED_LINE
     do
-      if [ "$(echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" | grep -c ^BRDEXEC_ | awk -F "=" '{print $1}')" -eq 1 ]; then
-
-        unset BRDEXEC_EMBEDED_VAR
-        BRDEXEC_EMBEDED_VAR="$(echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" | awk -F "=" '{print $1}')"
-        if [ "$(grep -wc "^${BRDEXEC_EMBEDED_VAR}$" ./etc/enhanced_script_supported_variables.db)" -eq 1 ]; then
-          #FIXME secure the line loaded better
-          echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" > ${BRDEXEC_SCRIPT_EMBEDED}
-          . ${BRDEXEC_SCRIPT_EMBEDED}
-        fi
-
-        #while read BRDEXEC_SCRIPT_SUPPORTED_VARIABLE
-        #do
-        #  if [ "$(echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" | awk -F "=" '{print $1}')" = "$(echo "${BRDEXEC_SCRIPT_SUPPORTED_VARIABLE}" | awk -F "=" '{print $1}')" ]; then
-        #    echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" > ${BRDEXEC_SCRIPT_EMBEDED}
-        #    . ${BRDEXEC_SCRIPT_EMBEDED}
-        #  fi
-        #done < ./etc/enhanced_script_supported_variables.db
+      unset BRDEXEC_EMBEDED_VAR
+      BRDEXEC_EMBEDED_VAR="$(echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" | awk -F "=" '{print $1}')"
+      if [ "$(grep -wc "^${BRDEXEC_EMBEDED_VAR}$" ./etc/enhanced_script_supported_variables.db)" -eq 1 ]; then
+        #FIXME secure the line loaded better
+        echo "${BRDEXEC_SCRIPT_EMBEDED_LINE}" > ${BRDEXEC_SCRIPT_EMBEDED}
+        . ${BRDEXEC_SCRIPT_EMBEDED}
       fi
-    done < ${BRDEXEC_TMP_SCRIPT}
-    rm ${BRDEXEC_SCRIPT_EMBEDED}
+    done < ${BRDEXEC_EMBEDED_LINES}
+    rm ${BRDEXEC_SCRIPT_EMBEDED} ${BRDEXEC_EMBEDED_LINES} 2>/dev/null
   else
     display_error "2120" 1
   fi
@@ -1954,6 +1945,11 @@ Available options:
 #302
 verbose () {
 
+  ### skip if no verbose mode
+  if [ "${VERBOSE}" != "yes" ] && [ "${DEBUG}" != "yes" ]; then
+    return 0
+  fi
+
   ### display this when wrong input
   if [ "$#" -lt 1 ]; then
     >&2 echo "   VERBOSE: Error displaying verbose output."
@@ -1961,17 +1957,36 @@ verbose () {
   fi
 
   ### if only number is given assume loading message from library
+  [ -f "./etc/verbose.db" ] && . ./etc/verbose.db
+  if [ ! -z "${3}" ]; then
+    [ -f "./etc/plugins/verbose.db/${3}" ] && . ./etc/plugins/verbose.db/${3}
+  fi
   if [ "${1}" -eq "${1}" ] 2>/dev/null; then
     ### checking verbosity level
-    if [ "$#" -eq 2 ]; then
+    if [ "$#" -eq 2 ] || [ "$#" -eq 3 ]; then
       if [ "${2}" -le "${VERBOSITY_LEVEL}" ]; then
-        ### load message from library
-        [ -f "./etc/verbose.db" ] && . ./etc/verbose.db
-        if [ "${VERBOSE}" = "yes" ]; then
-          echo "   VERBOSE[${1}]: ${VERBOSE_MESSAGE[$1]}"
+
+        ### check if verbose message is from plugin
+        if [[ "${1}" =~ ^99 ]] && [ -f "./etc/plugins/verbose.db/${3}" ]; then
+          if [ "${VERBOSE}" = "yes" ]; then
+            echo "   VERBOSE[${1}]: plugin: ${3} ${VERBOSE_PLUGIN_MESSAGE[$1]}"
+          fi
+        else
+
+          ### load message from default library
+          if [ "${VERBOSE}" = "yes" ]; then
+            echo "   VERBOSE[${1}]: ${VERBOSE_MESSAGE[$1]}"
+          fi
         fi
+
       fi
-      script_specific "${SCRIPT_NAME}" "verbose" "write_last_run_log" "${1}"
+
+      ### write verbose message to last run log
+      if [ "$#" -eq 2 ]; then
+        echo "   VERBOSE[${1}]: ${VERBOSE_MESSAGE[$1]}" >> ${BRDEXEC_LOG_LAST_RUN}
+      elif [ "$#" -eq 3 ]; then
+        echo "   VERBOSE[${1}]: plugin: ${3} ${VERBOSE_PLUGIN_MESSAGE[$1]}" >> ${BRDEXEC_LOG_LAST_RUN}
+      fi
     fi
   ### if -s is given as parameter display default function start message
   elif [ "${1}" = "-s" ]; then

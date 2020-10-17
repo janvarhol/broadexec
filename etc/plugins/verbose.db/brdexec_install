@@ -1,0 +1,7 @@
+VERBOSE_PLUGIN_MESSAGE[990]="Initiating installation."
+VERBOSE_PLUGIN_MESSAGE[991]="User already added to config file."
+VERBOSE_PLUGIN_MESSAGE[992]="Entered default username to be used: ${BRDEXEC_INSTALL_USER}."
+VERBOSE_PLUGIN_MESSAGE[993]="Skipping user selection."
+VERBOSE_PLUGIN_MESSAGE[994]="Cancelling installation."
+VERBOSE_PLUGIN_MESSAGE[995]="Aborting installation."
+VERBOSE_PLUGIN_MESSAGE[996]="Default user set."

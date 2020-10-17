@@ -39,7 +39,10 @@ if [ "$?" -ne 0 ]; then
 fi
 
 ### connect config file
+BRDEXEC_CONFIG_CLEAN="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
+BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_CONFIG_CLEAN}"
 if [ "$(md5sum ./etc/config_file_valid_entries.db 2>/dev/null | awk '{print $1}')" = "c137deae01d35c076ba371cf3b6dbc63" 2>/dev/null ] && [ -f "./conf/broadexec.conf" ]; then
+  grep -v "^#" ./conf/broadexec.conf | grep -v "^$" > ${BRDEXEC_CONFIG_CLEAN}
   while read BRDEXEC_CONFIG_LINE; do
     BRDEXEC_CONFIG_LINE_ITEM="$(echo "${BRDEXEC_CONFIG_LINE}" | awk -F "=" '{print $1}')"
     if [ "$(grep -c "${BRDEXEC_CONFIG_LINE_ITEM}" ./etc/config_file_valid_entries.db)" -gt 0 ]; then
@@ -48,7 +51,7 @@ if [ "$(md5sum ./etc/config_file_valid_entries.db 2>/dev/null | awk '{print $1}'
       . ${BRDEXEC_CONFIG_TMP_FILE}
       rm ${BRDEXEC_CONFIG_TMP_FILE}
     fi
-  done < ./conf/broadexec.conf
+  done < ${BRDEXEC_CONFIG_CLEAN}
 else
   >&2 echo "Unable to load configuration database, run broadexec install again to validate databases"
   exit 1
@@ -68,7 +71,12 @@ fi
 
 ### connect team config file
 if [ ! -z "${BRDEXEC_TEAM_CONFIG}" ] && [ -e "conf/${BRDEXEC_TEAM_CONFIG}" ] && [ -f "conf/${BRDEXEC_TEAM_CONFIG}/broadexec.conf" ]; then
+<<<<<<< HEAD
   if [ "$(md5sum ./etc/config_file_valid_entries.db 2>/dev/null | awk '{print $1}')" = "c137deae01d35c076ba371cf3b6dbc63" ]; then
+=======
+  if [ "$(md5sum ./etc/config_file_valid_entries.db 2>/dev/null | awk '{print $1}')" = "8773c6a7b20a12d10fca2f2ea16f87b7" ]; then
+    grep -v "^#" ./conf/${BRDEXEC_TEAM_CONFIG}/broadexec.conf | grep -v "^$" > ${BRDEXEC_CONFIG_CLEAN}
+>>>>>>> development
     while read BRDEXEC_CONFIG_LINE; do
       BRDEXEC_CONFIG_LINE_ITEM="$(echo "${BRDEXEC_CONFIG_LINE}" | awk -F "=" '{print $1}')"
       if [ "$(grep -c "${BRDEXEC_CONFIG_LINE_ITEM}" ./etc/config_file_valid_entries.db)" -gt 0 ]; then
@@ -77,12 +85,12 @@ if [ ! -z "${BRDEXEC_TEAM_CONFIG}" ] && [ -e "conf/${BRDEXEC_TEAM_CONFIG}" ] && 
         . ${BRDEXEC_CONFIG_TMP_FILE}
         rm ${BRDEXEC_CONFIG_TMP_FILE}
       fi
-    done < ./conf/${BRDEXEC_TEAM_CONFIG}/broadexec.conf
+    done < ${BRDEXEC_CONFIG_CLEAN}
   fi
 fi
 
 ### connect library
-. ./lib/lib.sh
+. ./lib/lib.sh 2>/dev/null
 if [ "${?}" -ne 0 ]; then
   >&2 echo "ERROR: There was problem connecting to library lib.sh Check and install it manually."
   exit 1
@@ -167,6 +175,15 @@ elif [ ! -z "${BRDEXEC_COPY_FILE}" ]; then
 elif [ -z "${BRDEXEC_INPUT_SCRIPT_PATH}" ] || [ ! -f "${BRDEXEC_INPUT_SCRIPT_PATH}" ] || [ -z "${BRDEXEC_SCRIPT_TO_RUN}" ] || [ ! -f "${BRDEXEC_SCRIPT_TO_RUN}" ]; then
   brdexec_script_menu_selection
 fi
+
+### catch disabled script manual run
+for BRDEXEC_DISABLED_SCRIPT_LOOP in "${BRDEXEC_INPUT_SCRIPT_PATH}" "${BRDEXEC_SCRIPT_TO_RUN}"; do
+  if [ -f "${BRDEXEC_DISABLED_SCRIPT_LOOP}" ]; then
+    if [ "$(grep -wc "^BRDEXEC_SCRIPT_DISABLED" ${BRDEXEC_DISABLED_SCRIPT_LOOP})" -gt 0 ]; then
+      display_error "101" 1
+    fi
+  fi
+done
 
 #spring cleaning #TODO clean verbose messages
 ### execute chosen script
