@@ -39,7 +39,10 @@ if [ "$?" -ne 0 ]; then
 fi
 
 ### connect config file
+BRDEXEC_CONFIG_CLEAN="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
+BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_CONFIG_CLEAN}"
 if [ "$(md5sum ./etc/config_file_valid_entries.db 2>/dev/null | awk '{print $1}')" = "8773c6a7b20a12d10fca2f2ea16f87b7" 2>/dev/null ] && [ -f "./conf/broadexec.conf" ]; then
+  grep -v "^#" ./conf/broadexec.conf | grep -v "^$" > ${BRDEXEC_CONFIG_CLEAN}
   while read BRDEXEC_CONFIG_LINE; do
     BRDEXEC_CONFIG_LINE_ITEM="$(echo "${BRDEXEC_CONFIG_LINE}" | awk -F "=" '{print $1}')"
     if [ "$(grep -c "${BRDEXEC_CONFIG_LINE_ITEM}" ./etc/config_file_valid_entries.db)" -gt 0 ]; then
@@ -48,7 +51,7 @@ if [ "$(md5sum ./etc/config_file_valid_entries.db 2>/dev/null | awk '{print $1}'
       . ${BRDEXEC_CONFIG_TMP_FILE}
       rm ${BRDEXEC_CONFIG_TMP_FILE}
     fi
-  done < ./conf/broadexec.conf
+  done < ${BRDEXEC_CONFIG_CLEAN}
 else
   >&2 echo "Unable to load configuration database, run broadexec install again to validate databases"
   exit 1
@@ -57,6 +60,7 @@ fi
 ### connect team config file
 if [ ! -z "${BRDEXEC_TEAM_CONFIG}" ] && [ -e "conf/${BRDEXEC_TEAM_CONFIG}" ] && [ -f "conf/${BRDEXEC_TEAM_CONFIG}/broadexec.conf" ]; then
   if [ "$(md5sum ./etc/config_file_valid_entries.db 2>/dev/null | awk '{print $1}')" = "8773c6a7b20a12d10fca2f2ea16f87b7" ]; then
+    grep -v "^#" ./conf/${BRDEXEC_TEAM_CONFIG}/broadexec.conf | grep -v "^$" > ${BRDEXEC_CONFIG_CLEAN}
     while read BRDEXEC_CONFIG_LINE; do
       BRDEXEC_CONFIG_LINE_ITEM="$(echo "${BRDEXEC_CONFIG_LINE}" | awk -F "=" '{print $1}')"
       if [ "$(grep -c "${BRDEXEC_CONFIG_LINE_ITEM}" ./etc/config_file_valid_entries.db)" -gt 0 ]; then
@@ -65,12 +69,12 @@ if [ ! -z "${BRDEXEC_TEAM_CONFIG}" ] && [ -e "conf/${BRDEXEC_TEAM_CONFIG}" ] && 
         . ${BRDEXEC_CONFIG_TMP_FILE}
         rm ${BRDEXEC_CONFIG_TMP_FILE}
       fi
-    done < ./conf/${BRDEXEC_TEAM_CONFIG}/broadexec.conf
+    done < ${BRDEXEC_CONFIG_CLEAN}
   fi
 fi
 
 ### connect library
-. ./lib/lib.sh
+. ./lib/lib.sh 2>/dev/null
 if [ "${?}" -ne 0 ]; then
   >&2 echo "ERROR: There was problem connecting to library lib.sh Check and install it manually."
   exit 1
@@ -158,20 +162,30 @@ elif [ -z "${BRDEXEC_INPUT_SCRIPT_PATH}" ] || [ ! -f "${BRDEXEC_INPUT_SCRIPT_PAT
   brdexec_script_menu_selection
 fi
 
-#spring cleaning #TODO clean vertbose messages
+#spring cleaning #TODO clean verbose messages
 ### execute chosen script
 verbose 126 2
 
 ### verify script signature
-brdexec_load_plugin brdexec_verify_script_signature
+#brdexec_load_plugin brdexec_verify_script_signature
+brdexec_execute_plugin_hooks brdexec_before_script_manipulation
 
-#brdexec_execute_temp_scripts -s "${BRDEXEC_SCRIPT_TO_RUN}"
 brdexec_create_hosts_list_based_on_filter
 
 ### check missing known hosts
-#if [ -z "${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY}" ]; then
-brdexec_repair_missing_known_hosts
-#fi
+verbose -s "brdexec_repair_missing_known_hosts ${@}"
+BRDEXEC_KNOWN_HOSTS_MESSAGE="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
+rm "${BRDEXEC_KNOWN_HOSTS_MESSAGE}"
+for BRDEXEX_MISSING_KNOWN_HOSTS_SERVER in ${BRDEXEC_SERVERLIST_LOOP}; do
+  brdexec_repair_missing_known_hosts &
+  BRDEXEC_KNOWN_HOSTS_PIDS+=" $!"
+done
+
+wait ### for known hosts
+if [ -f "${BRDEXEC_KNOWN_HOSTS_MESSAGE}" ]; then
+  brdexec_display_output "" 2
+  rm "${BRDEXEC_KNOWN_HOSTS_MESSAGE}"
+fi
 
 if [ -z "${BRDEXEC_BATCH_MODE}" ]; then
   ### search for and ask questions by script

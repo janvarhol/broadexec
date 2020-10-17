@@ -52,13 +52,21 @@ case "${BRDEXEC_USER_FOUND}" in
   skip)
     BRDEXEC_INSTALL_USER=skip ;;
   *)
-    echo "Enter default username used for connecting to hosts [$(logname)]:"
+    logname >/dev/null 2>&1
+    if [ "${?}" -eq 0 ]; then
+      BRDEXEC_INSTALL_DEFAULT_USER="$(logname 2>/dev/null)"
+    elif [ ! -z "${USER}" ]; then
+      BRDEXEC_INSTALL_DEFAULT_USER="${USER}"
+    else
+      BRDEXEC_INSTALL_DEFAULT_USER=root
+    fi
+    echo "Enter default username used for connecting to hosts [${BRDEXEC_INSTALL_DEFAULT_USER}]:"
     read BRDEXEC_INSTALL_USER
     verbose 992 2 brdexec_install ;;
 esac
 
 if [ "${BRDEXEC_INSTALL_USER}" = "" 2>/dev/null ]; then
-  BRDEXEC_INSTALL_USER="$(logname)"
+  BRDEXEC_INSTALL_USER="${BRDEXEC_INSTALL_DEFAULT_USER}"
 fi
 
 case "${BRDEXEC_INSTALL_USER}" in
