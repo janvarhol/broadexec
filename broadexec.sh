@@ -114,14 +114,14 @@ brdexec_execute_plugin_hooks brdexec_init
 ### run report files cleanup
 #brdexec_load_plugin cleanup_report_files
 
+### Get main arguments for the script and process them also if some are missing fill in defaults
+brdexec_getopts_main ${@}
+brdexec_check_for_conflicting_inputs
+
 # check installation
 if [ "$(grep -c "^#already installed" conf/broadexec.conf)" -eq 0 ]; then
   brdexec_load_plugin brdexec_install
 fi
-
-### Get main arguments for the script and process them also if some are missing fill in defaults
-brdexec_getopts_main ${@}
-brdexec_check_for_conflicting_inputs
 
 #TODO make this work so it can be enabled
 #brdexec_check_updates
