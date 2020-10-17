@@ -118,9 +118,91 @@ brdexec_proxy__brdexec_before_ssh () {
       BRDEXEC_SELECTED_PARAMETERS_INFO_PROXY="$(echo "${BRDEXEC_SELECTED_PARAMETERS_INFO}" | sed -e "s#/all.#/${BRDEXEC_PROXY_HOST_NAME}.#g")"
     fi
 
-    echo "echo \"${BRDEXEC_PROXY_PATH}/broadexec.sh ${BRDEXEC_PARAMETERS_BACKUP_PROXY} ${BRDEXEC_SELECTED_PARAMETERS_INFO_PROXY} --external --runid ${RUNID} --batch -qq\" | ssh -p ${BRDEXEC_PROXY_PORT} -o StrictHostKeyChecking=yes -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o \"ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}\" ${BRDEXEC_PROXY_USER}@${BRDEXEC_PROXY_HOST} \"cat > /tmp/${BRDEXEC_RUNID}_external.sh && chmod +x /tmp/${BRDEXEC_RUNID}_external.sh && /tmp/${BRDEXEC_RUNID}_external.sh; rm /tmp/${BRDEXEC_RUNID}_external.sh\" 2>>${BRDEXEC_PROXY_ERROR_OUTPUT} >> ${BRDEXEC_PROXY_MAIN_OUTPUT} &"
+#    echo "echo \"${BRDEXEC_PROXY_PATH}/broadexec.sh ${BRDEXEC_PARAMETERS_BACKUP_PROXY} ${BRDEXEC_SELECTED_PARAMETERS_INFO_PROXY} --external --runid ${RUNID} --batch -qq\" | ssh -p ${BRDEXEC_PROXY_PORT} -o StrictHostKeyChecking=yes -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o \"ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}\" ${BRDEXEC_PROXY_USER}@${BRDEXEC_PROXY_HOST} \"cat > /tmp/${BRDEXEC_RUNID}_external.sh && chmod +x /tmp/${BRDEXEC_RUNID}_external.sh && /tmp/${BRDEXEC_RUNID}_external.sh; rm /tmp/${BRDEXEC_RUNID}_external.sh\" 2>>${BRDEXEC_PROXY_ERROR_OUTPUT} >> ${BRDEXEC_PROXY_MAIN_OUTPUT} &"
 #exit
-    echo "${BRDEXEC_PROXY_PATH}/broadexec.sh ${BRDEXEC_PARAMETERS_BACKUP_PROXY} ${BRDEXEC_SELECTED_PARAMETERS_INFO_PROXY} --external --runid ${RUNID} --batch -qq" | ssh -p ${BRDEXEC_PROXY_PORT} -o StrictHostKeyChecking=yes -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_PROXY_USER}@${BRDEXEC_PROXY_HOST} "cat > /tmp/${BRDEXEC_RUNID}_external.sh && chmod +x /tmp/${BRDEXEC_RUNID}_external.sh && /tmp/${BRDEXEC_RUNID}_external.sh; rm /tmp/${BRDEXEC_RUNID}_external.sh" 2>>${BRDEXEC_PROXY_ERROR_OUTPUT} >> ${BRDEXEC_PROXY_MAIN_OUTPUT} &
+#    echo "${BRDEXEC_PROXY_PATH}/broadexec.sh ${BRDEXEC_PARAMETERS_BACKUP_PROXY} ${BRDEXEC_SELECTED_PARAMETERS_INFO_PROXY} --external --runid ${RUNID} --batch -qq" | ssh -p ${BRDEXEC_PROXY_PORT} -o StrictHostKeyChecking=yes -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_PROXY_USER}@${BRDEXEC_PROXY_HOST} "cat > /tmp/${BRDEXEC_RUNID}_external.sh && chmod +x /tmp/${BRDEXEC_RUNID}_external.sh && /tmp/${BRDEXEC_RUNID}_external.sh; rm /tmp/${BRDEXEC_RUNID}_external.sh" 2>>${BRDEXEC_PROXY_ERROR_OUTPUT} >> ${BRDEXEC_PROXY_MAIN_OUTPUT} &
+
+    unset BRDEXEC_PROXY_LIST_TO_BE_COPIED
+    for PROXY_HOSTLIST_DIR in "${BRDEXEC_DEFAULT_HOSTS_FOLDER}" "${BRDEXEC_DEFAULT_HOSTS_FOLDER}/${BRDEXEC_TEAM_CONFIG}"; do
+      for BRDEXEC_POSSIBLE_PROXY_ITEM in $(ls -1 "${PROXY_HOSTLIST_DIR}"); do
+echo "P $(echo "${BRDEXEC_POSSIBLE_PROXY_ITEM}" | awk -F "." '{print $1}') PH ${BRDEXEC_PROXY_HOST_NAME}"
+        if [ "$(echo "${BRDEXEC_POSSIBLE_PROXY_ITEM}" | awk -F "." '{print $1}')" = "${BRDEXEC_PROXY_HOST_NAME}" ]; then
+          BRDEXEC_PROXY_LIST_TO_BE_COPIED="${PROXY_HOSTLIST_DIR}/${BRDEXEC_POSSIBLE_PROXY_ITEM}"
+          break
+        fi
+      done
+      if [ ! -z "${BRDEXEC_PROXY_LIST_TO_BE_COPIED}" ]; then
+        break
+      fi
+    done
+
+echo "HOSTLIST ${BRDEXEC_PROXY_LIST_TO_BE_COPIED}"
+
+    BRDEXEC_TARDIR="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
+
+echo "    tar czf - \
+      conf/broadexec.conf \
+      ${BRDEXEC_PROXY_LIST_TO_BE_COPIED} \
+      ${BRDEXEC_SCRIPT_TO_RUN} | \
+      ssh \
+          -p ${BRDEXEC_PROXY_PORT} \
+          -o StrictHostKeyChecking=yes \
+          -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} \
+          -o \"ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}\" \
+        ${BRDEXEC_PROXY_USER}@${BRDEXEC_PROXY_HOST} \" \
+          mkdir -p $BRDEXEC_TARDIR; \
+          echo 'Broadexec version:${BRDEXEC_VERSION}' \> ${BRDEXEC_TARDIR}/version_orig; \
+          ${BRDEXEC_PROXY_PATH}/broadexec.sh --version \> ${BRDEXEC_TARDIR}/version_target; \
+          diff ${BRDEXEC_TARDIR}/version_orig ${BRDEXEC_TARDIR}/version_target 2\>/dev/null \>/dev/null; \
+          cat - > ${BRDEXEC_TARDIR}/broadexec_proxy.tar.gz; \
+          tar xzf broadexec_proxy.tar.gz -C ${BRDEXEC_PROXY_PATH}/; \
+          ${BRDEXEC_PROXY_PATH}/broadexec.sh \
+            ${BRDEXEC_PARAMETERS_BACKUP_PROXY} \
+            ${BRDEXEC_SELECTED_PARAMETERS_INFO_PROXY} \
+            --external \
+            --runid ${RUNID} \
+            --batch \
+            -qq; \
+      \" 2>>${BRDEXEC_PROXY_ERROR_OUTPUT} >> ${BRDEXEC_PROXY_MAIN_OUTPUT} &"
+
+
+    tar czf - \
+      conf/broadexec.conf \
+      ${BRDEXEC_PROXY_LIST_TO_BE_COPIED} \
+      ${BRDEXEC_SCRIPT_TO_RUN} | \
+      ssh \
+          -p ${BRDEXEC_PROXY_PORT} \
+          -o StrictHostKeyChecking=yes \
+          -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} \
+          -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" \
+        ${BRDEXEC_PROXY_USER}@${BRDEXEC_PROXY_HOST} " \
+          mkdir -p $BRDEXEC_TARDIR; \
+          echo 'Broadexec version: ${BRDEXEC_VERSION}' > ${BRDEXEC_TARDIR}/version_orig; \
+          ${BRDEXEC_PROXY_PATH}/broadexec.sh --version > ${BRDEXEC_TARDIR}/version_target; \
+          diff ${BRDEXEC_TARDIR}/version_orig ${BRDEXEC_TARDIR}/version_target 2>/dev/null >/dev/null; \
+          if [ \"\$?\" -ne 0 ]; then \
+            >&2 echo \"ERROR: Broadexec version on \$HOSTNAME does not match!\"; \
+            rm -rf ${BRDEXEC_TARDIR}; \
+            exit 15; \
+          fi; \
+          cat - > ${BRDEXEC_TARDIR}/broadexec_proxy.tar.gz; \
+          tar xzf broadexec_proxy.tar.gz -C ${BRDEXEC_PROXY_PATH}/; \
+          ${BRDEXEC_PROXY_PATH}/broadexec.sh \
+            ${BRDEXEC_PARAMETERS_BACKUP_PROXY} \
+            ${BRDEXEC_SELECTED_PARAMETERS_INFO_PROXY} \
+            --external \
+            --runid ${RUNID} \
+            --batch \
+            -qq; \
+      " 2>>${BRDEXEC_PROXY_ERROR_OUTPUT} >> ${BRDEXEC_PROXY_MAIN_OUTPUT} &
+#rm -rf ${BRDEXEC_TARDIR}; \
+#  rm -f \${BRDEXEC_TARDIR}/broadexec_proxy.tar.gz \
+#          if [ \"\$?\" -ne 0 ]; then \
+#            >&2 echo \"ERROR: Broadexec version on \$HOSTNAME does not match!\"; \
+#            rm -rf ${BRDEXEC_TARDIR}; \
+#            exit 15; \
+#          fi; \
+
     BRDEXEC_PROXY_PID="${!}"
 #echo "Proxy pid: ${BRDEXEC_PROXY_PID}"
     BRDEXEC_PROXY_PIDS+=" ${BRDEXEC_PROXY_PID}"
@@ -223,7 +305,11 @@ brdexec_proxy__brdexec_before_ssh () {
 
     BRDEXEC_PROXY_RUN_FINISHED=0
     for BRDEXEC_PROXY_PID in ${BRDEXEC_PROXY_PIDS}; do
-      if [ "${BRDEXEC_CURRENT_STATS_FILE_STATE}" = "FINISHED" ] || [ "${BRDEXEC_CURRENT_STATS_FILE_STATE}" = "INTERRUPTED" ] || [ "${BRDEXEC_CURRENT_STATS_FILE_ERROR}" = "yes" ]; then
+      ps -p ${BRDEXEC_PROXY_PID} >/dev/null
+      if [ "$?" -ne 0 ] && [ -z "${BRDEXEC_CURRENT_STATS_FILE_STATE}" ]; then
+        BRDEXEC_CURRENT_STATS_FILE_STATE="PROXY_ERROR"
+      fi
+      if [ "${BRDEXEC_CURRENT_STATS_FILE_STATE}" = "FINISHED" ] || [ "${BRDEXEC_CURRENT_STATS_FILE_STATE}" = "INTERRUPTED" ] || [ "${BRDEXEC_CURRENT_STATS_FILE_STATE}" = "PROXY_ERROR" ] || [ "${BRDEXEC_CURRENT_STATS_FILE_ERROR}" = "yes" ]; then
       ((BRDEXEC_PROXY_RUN_FINISHED++))
       #if [ "${BRDEXEC_PROXY_ALREADY_FINISHED_ARRAY[$BRDEXEC_PROXY_PID]}" != "yes" ]; then
         #ps -p ${BRDEXEC_PROXY_PID} >/dev/null
@@ -233,7 +319,6 @@ brdexec_proxy__brdexec_before_ssh () {
       #fi
       fi
     done
-
 
     if [ "${BRDEXEC_PROXY_RUN_FINISHED}" -eq "${BRDEXEC_PROXY_PID_TOTAL_COUNT}" ]; then
       BRDEXEC_DEATH_COUNTER=${BRDEXEC_START_TIME}
