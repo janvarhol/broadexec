@@ -162,6 +162,15 @@ elif [ -z "${BRDEXEC_INPUT_SCRIPT_PATH}" ] || [ ! -f "${BRDEXEC_INPUT_SCRIPT_PAT
   brdexec_script_menu_selection
 fi
 
+### catch disabled script manual run
+for BRDEXEC_DISABLED_SCRIPT_LOOP in "${BRDEXEC_INPUT_SCRIPT_PATH}" "${BRDEXEC_SCRIPT_TO_RUN}"; do
+  if [ -f "${BRDEXEC_DISABLED_SCRIPT_LOOP}" ]; then
+    if [ "$(grep -wc "^BRDEXEC_SCRIPT_DISABLED" ${BRDEXEC_DISABLED_SCRIPT_LOOP})" -gt 0 ]; then
+      display_error "101" 1
+    fi
+  fi
+done
+
 #spring cleaning #TODO clean verbose messages
 ### execute chosen script
 verbose 126 2

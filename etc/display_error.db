@@ -1,4 +1,5 @@
 ERROR_MESSAGE[100]="Error in function brdexec_init_main. Strange! Very strange error! You should think about your work life now."
+ERROR_MESSAGE[101]="Error in Broadexec main execution. Script you are trying to run is marked as disabled for broadexec. Check with script author about usage."
 ERROR_MESSAGE[110]="Error in function brdexec_execute_temp_scripts. Filter you entered is not found in hosts file. Probably a typo, check please."
 ERROR_MESSAGE[111]="Error in function brdexec_execute_temp_scripts. Column you requested via -c cannot be filtered because column with this number does not exist in hosts file"
 ERROR_MESSAGE[112]="Error in function brdexec_execute_temp_scripts. Hosts file is empty."
