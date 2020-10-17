@@ -111,3 +111,7 @@ LOG_LEVEL=1
 ### display delimiters for output/reports between hostnames and data gathered
 ### default is space
 BRDEXEC_OUTPUT_HOSTNAME_DELIMITER=" "
+
+### log/show debug output
+### default is "no", set to "yes" to generate extra detailed last log
+DEBUG=no
