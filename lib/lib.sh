@@ -506,10 +506,6 @@ script_specific () {
       ### broadexec verbose output specifics
       verbose)
         case ${3} in
-          write_last_run_log)
-            [ -f "./etc/verbose.db" ] && . ./etc/verbose.db
-            echo "   VERBOSE[${4}]: ${VERBOSE_MESSAGE[$4]}" >> ${BRDEXEC_LOG_LAST_RUN}
-          ;;
           write_last_run_log_start)
             echo "   VERBOSE: Function ${4} START" >> ${BRDEXEC_LOG_LAST_RUN}
           ;;
@@ -1954,17 +1950,36 @@ verbose () {
   fi
 
   ### if only number is given assume loading message from library
+  [ -f "./etc/verbose.db" ] && . ./etc/verbose.db
+  if [ ! -z "${3}" ]; then
+    [ -f "./etc/plugins/verbose.db/${3}" ] && . ./etc/plugins/verbose.db/${3}
+  fi
   if [ "${1}" -eq "${1}" ] 2>/dev/null; then
     ### checking verbosity level
-    if [ "$#" -eq 2 ]; then
+    if [ "$#" -eq 2 ] || [ "$#" -eq 3 ]; then
       if [ "${2}" -le "${VERBOSITY_LEVEL}" ]; then
-        ### load message from library
-        [ -f "./etc/verbose.db" ] && . ./etc/verbose.db
-        if [ "${VERBOSE}" = "yes" ]; then
-          echo "   VERBOSE[${1}]: ${VERBOSE_MESSAGE[$1]}"
+
+        ### check if verbose message is from plugin
+        if [[ "${1}" =~ ^99 ]] && [ -f "./etc/plugins/verbose.db/${3}" ]; then
+          if [ "${VERBOSE}" = "yes" ]; then
+            echo "   VERBOSE[${1}]: plugin: ${3} ${VERBOSE_PLUGIN_MESSAGE[$1]}"
+          fi
+        else
+
+          ### load message from default library
+          if [ "${VERBOSE}" = "yes" ]; then
+            echo "   VERBOSE[${1}]: ${VERBOSE_MESSAGE[$1]}"
+          fi
         fi
+
       fi
-      script_specific "${SCRIPT_NAME}" "verbose" "write_last_run_log" "${1}"
+
+      ### write verbose message to last run log
+      if [ "$#" -eq 2 ]; then
+        echo "   VERBOSE[${1}]: ${VERBOSE_MESSAGE[$1]}" >> ${BRDEXEC_LOG_LAST_RUN}
+      elif [ "$#" -eq 3 ]; then
+        echo "   VERBOSE[${1}]: plugin: ${3} ${VERBOSE_PLUGIN_MESSAGE[$1]}" >> ${BRDEXEC_LOG_LAST_RUN}
+      fi
     fi
   ### if -s is given as parameter display default function start message
   elif [ "${1}" = "-s" ]; then
