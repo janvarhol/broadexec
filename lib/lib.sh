@@ -366,7 +366,7 @@ brdexec_ssh_pid () { verbose -s "brdexec_ssh_pid ${@}"
       ### use askpass script to log in with password
       SSH_ASKPASS_PASSWORD="${BRDEXEC_SCRIPT_PWD}"
       SSH_ASKPASS_SCRIPT="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-      BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${SSH_ASKPASS_SCRIPT}"
+      BRDEXEC_TEMP_FILES_LIST+=" ${SSH_ASKPASS_SCRIPT}"
       # $ (dollars) are not escaped in original script
       cat <<EOF >${SSH_ASKPASS_SCRIPT}
       if [ -n "\$SSH_ASKPASS_PASSWORD" ]; then
@@ -586,8 +586,8 @@ brdexec_hosts () {
       if [ ! -z "${BRDEXEC_HOSTSLIST_EXCLUDE}" ]; then
         BRDEXEC_HOSTSLIST_EXCLUDED_TEMP1="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
         BRDEXEC_HOSTSLIST_EXCLUDED_TEMP2="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-        BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_HOSTSLIST_EXCLUDED_TEMP1}"
-        BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_HOSTSLIST_EXCLUDED_TEMP2}"
+        BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_HOSTSLIST_EXCLUDED_TEMP1}"
+        BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_HOSTSLIST_EXCLUDED_TEMP2}"
         cat ${BRDEXEC_SERVERLIST_CHOSEN} > ${BRDEXEC_HOSTSLIST_EXCLUDED_TEMP1}
         BRDEXEC_HOSTSLIST_EXCLUDE="${BRDEXEC_HOSTSLIST_EXCLUDE//,/ }"
         for BRDEXEC_HOST_EXCLUDED in ${BRDEXEC_HOSTSLIST_EXCLUDE}; do
@@ -625,7 +625,7 @@ brdexec_hosts () {
       if [ "${BRDEXEC_SERVERLIST_CHOSEN}" = "" ] && [ ! -z "${BRDEXEC_HOSTS}" ] ; then
         verbose 224 2
         BRDEXEC_SERVERLIST_CHOSEN="$(mktemp)"
-        BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_SERVERLIST_CHOSEN}"
+        BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_SERVERLIST_CHOSEN}"
         for BRDEXEC_INPUT_HOST in $(echo "${BRDEXEC_HOSTS}" | sed -e 's/,/\ /g'); do
           echo "${BRDEXEC_INPUT_HOST}" >> ${BRDEXEC_SERVERLIST_CHOSEN}
         done
@@ -1075,7 +1075,7 @@ brdexec_variables_init () { verbose -s "brdexec_variables_init ${@}"
 
   ### check for hosts file in default directory and in team directory
   BRDEXEC_HOSTS_FILE="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-  BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_HOSTS_FILE}"
+  BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_HOSTS_FILE}"
   brdexec_hosts check_and_generate_hosts_file
 
   ### skip hostsfile selection if hosts file is present via parameter
@@ -1177,10 +1177,10 @@ brdexec_temp_files () { verbose -s "brdexec_temp_files ${@}"
   ### once ssh session will be started
   if [ "${1}" = "create_exec" ]; then
     BRDEXEC_ERROR_LOGFILE_MESSAGE="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-    BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_ERROR_LOGFILE_MESSAGE}"
+    BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_ERROR_LOGFILE_MESSAGE}"
     echo "${BRDEXEC_SERVER_NAME}" > ${BRDEXEC_ERROR_LOGFILE_MESSAGE}
     BRDEXEC_MAIN_RUN_OUTPUT="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-    BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_MAIN_RUN_OUTPUT}"
+    BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_MAIN_RUN_OUTPUT}"
     echo "${BRDEXEC_SERVER_NAME}" > ${BRDEXEC_MAIN_RUN_OUTPUT}
 
   ### create report temp files with corresponding names
@@ -1437,7 +1437,7 @@ brdexec_select_hosts_filter () { verbose -s "brdexec_select_hosts_filter ${@}"
 
       ### create temporary filter hostslist
       BRDEXEC_TEMP_HOSTS_LIST="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-      BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_TEMP_HOSTS_LIST}"
+      BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_TEMP_HOSTS_LIST}"
 
       ### check this run for more columns
       unset -v BRDEXEC_HOSTS_FILTER_ITEM_EXIST
@@ -1503,7 +1503,7 @@ brdexec_select_hosts_filter () { verbose -s "brdexec_select_hosts_filter ${@}"
         ### reset and save of temporary hostslist
         if [ ! -z "${BRDEXEC_SERVERLIST_FILTER}" ]; then
           BRDEXEC_ANOTHER_TEMP_HOSTS_LIST="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-          BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_ANOTHER_TEMP_HOSTS_LIST}"
+          BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_ANOTHER_TEMP_HOSTS_LIST}"
           cp ${BRDEXEC_TEMP_HOSTS_LIST} ${BRDEXEC_ANOTHER_TEMP_HOSTS_LIST}
           > ${BRDEXEC_TEMP_HOSTS_LIST}
 
@@ -1587,7 +1587,7 @@ brdexec_create_hosts_list_based_on_filter () { verbose -s "brdexec_create_hosts_
   ### create filter based on -f parameter
   if [ ! -z "${BRDEXEC_SERVERLIST_FILTER}" ]; then
     BRDEXEC_SERVERLIST_FILTERED="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-    BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_SERVERLIST_FILTERED}"
+    BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_SERVERLIST_FILTERED}"
 
     ### count how many -f parameters were entered
     BRDEXEC_SERVERLIST_FILTER_PHRASES_COUNT=$(echo "${BRDEXEC_SERVERLIST_FILTER}" | awk -F " " '{print NF}')
@@ -1641,7 +1641,7 @@ brdexec_create_temporary_hosts_list_based_on_filter () { verbose -s "brdexec_cre
 brdexec_make_temporary_script () {
 
   BRDEXEC_TMP_SCRIPT="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-  BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_TMP_SCRIPT}"
+  BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_TMP_SCRIPT}"
 
   if [ -f "${1}" ]; then
     ### load first line of script ahead
@@ -2025,7 +2025,7 @@ brdexec_generate_error_log () { verbose -s "brdexec_generate_error_log ${@}"
 
               ### if error line contains blacklisted phrase it will get deleted; because of mv there is no need to rm temp file
               BRDEXEC_ERROR_BLACKLIST_TEMP="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-              BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_ERROR_BLACKLIST_TEMP}"
+              BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_ERROR_BLACKLIST_TEMP}"
               grep -v "${BRDEXEC_ERROR_BLACKLIST_LINE}" ${BRDEXEC_ERROR_OUTPUT_ARRAY[$BRDEXEC_SSH_PID]} > ${BRDEXEC_ERROR_BLACKLIST_TEMP} && mv ${BRDEXEC_ERROR_BLACKLIST_TEMP} ${BRDEXEC_ERROR_OUTPUT_ARRAY[$BRDEXEC_SSH_PID]}
               fi
             fi
@@ -2173,7 +2173,7 @@ brdexec_repair_missing_known_hosts () {
       #    brdexec_display_output "  Adding ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} to ~/.ssh/known_hosts" 2
       #    touch ${BRDEXEC_KNOWN_HOSTS_MESSAGE}
       #    BRDEXEX_MISSING_KNOWN_HOSTS_TEMP="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-      #    BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP}"
+      #    BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP}"
       #    BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER="$(grep -n ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ~/.ssh/known_hosts | head -n 1 | awk -F ":" '{print $1}')"
 
       #    if [ ! -f "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file" ]; then
@@ -2709,7 +2709,7 @@ brdexec_admin_functions () { verbose -s "brdexec_admin_functions ${@}"
             BRDEXEC_SERVER_COUNT="$(cat ${BRDEXEC_HOSTS_FILE} | wc -l)"
             BRDEXEC_ETCHOSTS_TMPFILE="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
             BRDEXEC_ETCHOSTS_TMPFILE2="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-            BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_ETCHOSTS_TMPFILE}"
+            BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_ETCHOSTS_TMPFILE}"
             grep -v "^#" ${BRDEXEC_HOSTS_FILE} > ${BRDEXEC_ETCHOSTS_TMPFILE}
             ### filter hosts file to use only selected hostlist
             echo "Generating hotst file according to selected hostlist. It may take a while, be patient..."
@@ -2794,7 +2794,7 @@ brdexec_admin_check_and_fix_ssh_keys () { verbose -s "brdexec_admin_check_and_fi
 
   ### use askpass script to log in with password
   SSH_ASKPASS_SCRIPT="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-  BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${SSH_ASKPASS_SCRIPT}"
+  BRDEXEC_TEMP_FILES_LIST+=" ${SSH_ASKPASS_SCRIPT}"
   # $ (dollars) are not escaped in original script
   cat <<EOF >${SSH_ASKPASS_SCRIPT}
   if [ -n "\$SSH_ASKPASS_PASSWORD" ]; then
@@ -2988,7 +2988,7 @@ brdexec_admin_check_and_fix_password_expiration () { verbose -s "brdexec_admin_c
 
   ### use askpass script to log in with password
   SSH_ASKPASS_SCRIPT="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-  BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${SSH_ASKPASS_SCRIPT}"
+  BRDEXEC_TEMP_FILES_LIST+=" ${SSH_ASKPASS_SCRIPT}"
   # $ (dollars) are not escaped in original script
   cat <<EOF >${SSH_ASKPASS_SCRIPT}
   if [ -n "\$SSH_ASKPASS_PASSWORD" ]; then
@@ -3047,7 +3047,7 @@ brdexec_admin_check_connectivity_and_sudo_functionality () { verbose -s "brdexec
 
   BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY="yes"
   BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY_SCRIPT="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-  BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY_SCRIPT}"
+  BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY_SCRIPT}"
   echo '#!/bin/bash' >> ${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY_SCRIPT}
   echo 'sudo su - -c "uname -n"' >> ${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY_SCRIPT}
   BRDEXEC_SCRIPT_TO_RUN="${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY_SCRIPT}"

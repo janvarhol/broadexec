@@ -40,7 +40,7 @@ fi
 
 ### connect config file
 BRDEXEC_CONFIG_CLEAN="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_CONFIG_CLEAN}"
+BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_CONFIG_CLEAN}"
 if [ "$(md5sum ./etc/config_file_valid_entries.db 2>/dev/null | awk '{print $1}')" = "c137deae01d35c076ba371cf3b6dbc63" 2>/dev/null ] && [ -f "./conf/broadexec.conf" ]; then
   grep -v "^#" ./conf/broadexec.conf | grep -v "^$" > ${BRDEXEC_CONFIG_CLEAN}
   while read BRDEXEC_CONFIG_LINE; do
