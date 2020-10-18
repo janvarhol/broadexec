@@ -298,6 +298,7 @@ fi
 ### wait for all the answers or until timeout and display output as it is coming
 brdexec_display_output_until_timeout
 
+brdexec_execute_plugin_hooks brdexec_display_output_until_timeout
 brdexec_execute_plugin_hooks brdexec_display_main_output
 
 ### checking what had timed out and sorting it out
