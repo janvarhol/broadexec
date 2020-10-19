@@ -2065,44 +2065,44 @@ brdexec_display_error_log () { verbose -s "brdexec_display_error_log ${@}"
 
   ### Display error log and clear it
   if [ "${BRDEXEC_CONNECTION_ERROR_LOG}" != "" ] 2>/dev/null; then
-    brdexec_display_output "\n List of servers with connection or log in problem:${BRDEXEC_CONNECTION_ERROR_LOG}" 255
+    brdexec_display_output " List of servers with connection or log in problem:${BRDEXEC_CONNECTION_ERROR_LOG}" 255 1>&2
   fi
 
-  ### DIsplay unsupported OS hosts
+  ### Display unsupported OS hosts
   if [ "${BRDEXEC_OS_UNSUPPORTED_HOSTS}" != "" ] 2>/dev/null; then
-    brdexec_display_output "\n List of hosts with unsupported OS version for this run:${BRDEXEC_OS_UNSUPPORTED_HOSTS}" 255
+    brdexec_display_output " List of hosts with unsupported OS version for this run:${BRDEXEC_OS_UNSUPPORTED_HOSTS}" 255 1>&2
   fi
 
   ### when there are no errors in output
   if [ "$(cat ${BRDEXEC_MAIN_ERROR_CURLOG} 2>/dev/null | wc -l)" -eq 0 ]; then
     [ -f "${BRDEXEC_MAIN_ERROR_CURLOG}" ] && rm ${BRDEXEC_MAIN_ERROR_CURLOG}
     if [ -z "${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY}" ]; then
-      brdexec_display_output " Report has been saved in ${BRDEXEC_REPORT_FILE}" 255
+      brdexec_display_output " Report has been saved in ${BRDEXEC_REPORT_FILE}" 255 1>&2
     fi
     if [ ! -z "${BRDEXEC_GREP_DISPLAY_ONLY_SERVERS}" ]; then
-      brdexec_display_output " Report list has been saved in ${BRDEXEC_REPORT_FILE_LIST}" 255
+      brdexec_display_output " Report list has been saved in ${BRDEXEC_REPORT_FILE_LIST}" 255 1>&2
     fi
 
   ### when there are errors in output
   else
-    brdexec_display_output " Errors collected during broadexec run:" 255
+    brdexec_display_output " Errors collected during broadexec run:" 255 1>&2
     if [ "${BRDEXEC_QUIET_MODE}" != "yes" ]; then
-      awk ' NF>=2 {print $0} ' ${BRDEXEC_MAIN_ERROR_CURLOG} | sed -e 's/^/ /' && > ${BRDEXEC_MAIN_ERROR_CURLOG} || display_error 340 0
+      awk ' NF>=2 {print $0} ' ${BRDEXEC_MAIN_ERROR_CURLOG} | sed -e 's/^/ /' 1>&2 && > ${BRDEXEC_MAIN_ERROR_CURLOG} || display_error 340 0
       awk ' NF>=2 {print $0} ' ${BRDEXEC_MAIN_ERROR_CURLOG} >> ${BRDEXEC_LOG_LAST_RUN}
     fi
     if [ -z "${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY}" ]; then
-      brdexec_display_output " Report has been saved in ${BRDEXEC_REPORT_FILE}" 255
+      brdexec_display_output " Report has been saved in ${BRDEXEC_REPORT_FILE}" 255 1>&2
     fi
     if [ ! -z "${BRDEXEC_GREP_DISPLAY_ONLY_SERVERS}" ]; then
-      brdexec_display_output " Report list has been saved in ${BRDEXEC_REPORT_FILE_LIST}" 255
+      brdexec_display_output " Report list has been saved in ${BRDEXEC_REPORT_FILE_LIST}" 255 1>&2
     fi
 
     ### display info about error report file
     if [ -s "${BRDEXEC_REPORT_ERROR_FILE}" ]; then
       if [ "$(cat ${BRDEXEC_REPORT_ERROR_FILE} | wc -l)" -gt 0 ]; then
-        brdexec_display_output " Error report has been saved in ${BRDEXEC_REPORT_ERROR_FILE}" 255
+        brdexec_display_output " Error report has been saved in ${BRDEXEC_REPORT_ERROR_FILE}" 255 1>&2
       else
-        rm ${BRDEXEC_REPORT_ERROR_FILE} || echo " Error deleting ${BRDEXEC_REPORT_ERROR_FILE}"
+        rm ${BRDEXEC_REPORT_ERROR_FILE} || echo " Error deleting ${BRDEXEC_REPORT_ERROR_FILE}" #FIXME ?
       fi
     else
       if [ -f "${BRDEXEC_REPORT_ERROR_FILE}" ]; then
