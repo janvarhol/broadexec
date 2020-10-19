@@ -191,10 +191,8 @@ brdexec_proxy__brdexec_before_ssh () {
           ${BRDEXEC_PROXY_PATH}/broadexec.sh \
             ${BRDEXEC_PARAMETERS_BACKUP_PROXY} \
             ${BRDEXEC_SELECTED_PARAMETERS_INFO_PROXY} \
-            --external \
             --runid ${RUNID} \
-            --batch \
-            -qq; \
+            --batch; \
       " 2>>${BRDEXEC_PROXY_ERROR_OUTPUT} >> ${BRDEXEC_PROXY_MAIN_OUTPUT} & 
     BRDEXEC_PROXY_PID="${!}"
 #echo "Proxy pid: ${BRDEXEC_PROXY_PID}"
@@ -319,8 +317,9 @@ brdexec_proxy__brdexec_display_output_until_timeout () {
     BRDEXEC_PROXY_PID_TOTAL_COUNT="$(echo ${BRDEXEC_PROXY_PIDS} | wc -w)"
 
     #FIXME break after some timeout...
-    while [ "${BRDEXEC_PROXY_RUN_FINISHED}" -eq "${BRDEXEC_PROXY_PID_TOTAL_COUNT}" ]; do
+    while [ "${BRDEXEC_PROXY_RUN_FINISHED}" -ne "${BRDEXEC_PROXY_PID_TOTAL_COUNT}" ]; do
       for BRDEXEC_PROXY_PID in ${BRDEXEC_PROXY_PIDS}; do
+        sleep 0.1 2>/dev/null || sleep 1
         ps -p ${BRDEXEC_PROXY_PID} >/dev/null
         if [ "$?" -ne 0 ]; then #&& [ -z "${BRDEXEC_CURRENT_STATS_FILE_STATE}" ]; then
           #BRDEXEC_CURRENT_STATS_FILE_STATE="PROXY_ERROR"
@@ -357,6 +356,8 @@ brdexec_proxy__brdexec_display_main_output () {
 
 #echo "PID $BRDEXEC_PROXY_PID"
 #    echo "${BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]}"
+#echo ${BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]}
+#ls -la ${BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]}
 cat ${BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]}
   done
 }
