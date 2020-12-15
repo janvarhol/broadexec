@@ -181,7 +181,7 @@ brdexec_proxy__brdexec_before_ssh () {
             exit 15; \
           fi; \
           cat - > ${BRDEXEC_TARDIR}/broadexec_proxy.tar.gz; \
-          tar xzf broadexec_proxy.tar.gz -C ${BRDEXEC_PROXY_PATH}/; \
+          tar xzf ${BRDEXEC_TARDIR}/broadexec_proxy.tar.gz -C ${BRDEXEC_PROXY_PATH}/; \
           ${BRDEXEC_PROXY_PATH}/broadexec.sh \
             ${BRDEXEC_PARAMETERS_BACKUP_PROXY} \
             ${BRDEXEC_SELECTED_PARAMETERS_INFO_PROXY} \
@@ -220,9 +220,9 @@ brdexec_proxy__brdexec_display_output_until_timeout () {
 brdexec_proxy__brdexec_display_main_output () {
 
   for BRDEXEC_PROXY_PID in ${BRDEXEC_PROXY_PIDS}; do
-    egrep -v "Report has been saved in|Error report has been saved in" ${BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]} >> \
+    cat ${BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]} >> \
       ${BRDEXEC_REPORT_PATH}/broadexec_${BRDEXEC_REPORT_SCRIPT_NAME}_${BRDEXEC_RUNID}.report
-    egrep -v "Report has been saved in|Error report has been saved in" ${BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]}
+    cat ${BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]}
   done
 }
 
