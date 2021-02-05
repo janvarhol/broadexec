@@ -1,0 +1,12 @@
+message 004: having the same host more than once in hostlist
+
+broadexec_parameters -h TESTING_SCENARIO_FOLDER/hosts/duplicate_host -s TESTING_SCENARIO_FOLDER/scripts/basic.sh --proxy no -u not_existent
+
+exclude_line has been saved in
+
+expect_start
+
+ List of servers with connection or log in problem: brdexec_test_host1
+ Errors collected during broadexec run:
+ brdexec_test_host1 not_existent@brdexec_test_host1: Permission denied (publickey,keyboard-interactive).,
+expect_end
