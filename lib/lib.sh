@@ -2136,7 +2136,7 @@ brdexec_repair_missing_known_hosts () {
   elif BRDEXEC_TEMP_OUTPUT="$(grep -v "^#" ~/.ssh/config 2>/dev/null | tr '[A-Z]' '[a-z]' | awk -v server=${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} '($1 == "host") && ($2 == server) {for(i=1; i<=5; i++) {getline; if($1=="host"){break;} else if($1=="hostname"){print $2; break;}}}' | tail -n 1)"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="${BRDEXEC_TEMP_OUTPUT}"
-  elif BRDEXEC_TEMP_OUTPUT="$(getent hosts "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" | awk '{print $1}')"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
+  elif BRDEXEC_TEMP_OUTPUT="$(getent hosts "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}" | head -n 1 | awk '{print $1}')"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME="${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER}"
     BRDEXEX_MISSING_KNOWN_HOSTS_SERVER="${BRDEXEC_TEMP_OUTPUT}"
   fi
