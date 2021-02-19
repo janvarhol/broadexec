@@ -2363,7 +2363,7 @@ brdexec_interruption_ctrl_c () { verbose -s "brdexec_interruption_ctrl_c ${@}"
   ### Killing hanged known hosts pids
   for BRDEXEC_KNOWN_HOSTS_PID in ${BRDEXEC_KNOWN_HOSTS_PIDS}; do
     ps -p ${BRDEXEC_KNOWN_HOSTS_PID} >/dev/null
-    disown ${BRDEXEC_KNOWN_HOSTS_PID}
+    disown ${BRDEXEC_KNOWN_HOSTS_PID} 2>/dev/null
     kill -9 ${BRDEXEC_KNOWN_HOSTS_PID} >/dev/null 2>&1
   done
   #FIXME remove when lockfile is not used anymore
