@@ -1104,7 +1104,7 @@ brdexec_variables_init () { verbose -s "brdexec_variables_init ${@}"
   ### setting defaut value for error blacklist
   if [ -z "${BRDEXEC_ERROR_BLACKLIST_FILE}" ]; then
     if [ ! -z "${BRDEXEC_TEAM_CONFIG}" ]; then
-      BRDEXEC_ERROR_BLACKLIST_FILE="./teamconfigs/${BRDEXEC_TEAM_CONFIG}/broadexec_error_blacklist.conf"
+      BRDEXEC_ERROR_BLACKLIST_FILE="./teamconfigs/${BRDEXEC_TEAM_CONFIG}/conf/broadexec_error_blacklist.conf"
     else
       BRDEXEC_ERROR_BLACKLIST_FILE="./conf/broadexec_error_blacklist.conf"
     fi
@@ -2363,7 +2363,7 @@ brdexec_interruption_ctrl_c () { verbose -s "brdexec_interruption_ctrl_c ${@}"
   ### Killing hanged known hosts pids
   for BRDEXEC_KNOWN_HOSTS_PID in ${BRDEXEC_KNOWN_HOSTS_PIDS}; do
     ps -p ${BRDEXEC_KNOWN_HOSTS_PID} >/dev/null
-    disown ${BRDEXEC_KNOWN_HOSTS_PID}
+    disown ${BRDEXEC_KNOWN_HOSTS_PID} 2>/dev/null
     kill -9 ${BRDEXEC_KNOWN_HOSTS_PID} >/dev/null 2>&1
   done
   #FIXME remove when lockfile is not used anymore
