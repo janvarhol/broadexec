@@ -227,6 +227,8 @@ fi
 ### set status from init to running in stats file
 brdexec_update_stats -p run_init_counts
 
+brdexec_write_access_log
+
 verbose 110 1
 for BRDEXEC_SERVER in ${BRDEXEC_SERVERLIST_LOOP}; do
 

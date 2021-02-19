@@ -154,6 +154,8 @@
 #
 # 313 H brdexec_update_stats - update stats file according to broadexec progress for reporting to other scripts
 #
+# 314 H brdexec_write_access_log - write access log with script and list used
+#
 ###############################################
 ###### Helper/Install/Rare use functions ######
 ###############################################
@@ -735,6 +737,11 @@ brdexec_first_verbose_init () {
   fi
   BRDEXEC_LOG_LAST_RUN="${BRDEXEC_LOG_PATH}/brdexec_last_run.log"
   BRDEXEC_LOG_CHECK_UPDATES="${BRDEXEC_LOG_PATH}/brdexec_check_updates.log"
+
+  ### not all distros have LOGNANE env var
+  if [ -z "${LOGNAME}" ]; then
+    LOGNAME="$(logname)"
+  fi
 
   ### reset last run logfile
   > ${BRDEXEC_LOG_LAST_RUN} || display_error "201" 1
@@ -2392,7 +2399,7 @@ brdexec_interruption_ctrl_c () { verbose -s "brdexec_interruption_ctrl_c ${@}"
 #308
 log () {
 
-  LOG_LINE="$(date +"%y-%m-%d") $(uname -n) ${SCRIPT_NAME}[${RUNID}]: "
+  LOG_LINE="$(date +"%y-%m-%d") $(uname -n) ${SCRIPT_NAME}[${RUNID}](${LOGNAME}): "
 
   ### check loglevel
   if [ "${2}" -le "${LOG_LEVEL}" ] 2>/dev/null; then
@@ -2617,6 +2624,12 @@ brdexec_update_stats () {
   unset BRDEXEC_STATS_PROGRESS
   unset BRDEXEC_STATS_PERCENTAGE
   unset BRDEXEC_STATS_SECONDS
+}
+
+#314
+brdexec_write_access_log () { verbose -s "brdexec_write_access_log ${@}"
+
+  log "running ${BRDEXEC_SCRIPT_TO_RUN} on ${BRDEXEC_SERVERLIST_LOOP}" 1
 }
 
 #41
