@@ -160,7 +160,8 @@ echo "### Teamconfig selection #################################################
 echo
 echo "Broadexec supports teamwork. If you are using the same hostlists and scripts"
 echo "as your colleagues, you can share them eg. in git repository and distribute"
-echo "them to each other. Learn more on github wiki."
+echo "them to each other. Learn more on github wiki:"
+echo "https://github.com/janvarhol/broadexec/wiki"
 echo
 
 if [ ! -z "${BRDEXEC_TEAM_CONFIG}" ]; then
@@ -209,7 +210,7 @@ if [ ! -z "${BRDEXEC_TEAM_CONFIG}" ]; then
     fi
     ln -s ./teamconfigs/${BRDEXEC_TEAM_CONFIG} ./default
   fi
-  for BRDEXEC_TEAM_CONFIG_SUBFOLDER in conf hosts scripts
+  for BRDEXEC_TEAM_CONFIG_SUBFOLDER in conf lists scripts
   do
     if [ ! -d "../teamconfigs/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER}" ]; then
       mkdir -p ../teamconfigs/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER} 2>/dev/null

@@ -112,6 +112,10 @@ LOG_LEVEL=1
 ### default is space
 BRDEXEC_OUTPUT_HOSTNAME_DELIMITER=" "
 
+### set if proxy broadexec installations should be used yes/no
+### default is yes
+BRDEXEC_PROXY=yes
+
 ### log/show debug output
 ### default is "no", set to "yes" to generate extra detailed last log
 DEBUG=no

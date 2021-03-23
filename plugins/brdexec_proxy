@@ -1,0 +1,253 @@
+#!/bin/bash
+
+brdexec_proxy__brdexec_init () {
+
+  ### set default for broadexec proxy if missing
+  if [ "${BRDEXEC_PROXY}" != "yes" ] && [ "${BRDEXEC_PROXY}" != "no" ]; then
+    BRDEXEC_PROXY=yes
+  fi
+  if [ -z "${BRDEXEC_PROXY}" ]; then
+    BRDEXEC_PROXY=yes
+  fi
+}
+
+brdexec_proxy__brdexec_manipulate_hostfiles () {
+
+  local PROXY_HOSTLIST_DIR
+
+  ### check if hostlist chosen is proxy hostlist
+  PROXY_HOSTLIST="$(echo "${BRDEXEC_SERVERLIST_CHOSEN}" | awk -F "/" '{print $NF}' | awk -F "." '{print $1}')"
+  if [ "${PROXY_HOSTLIST}" != "all" 2>/dev/null ]; then
+    BRDEXEC_PROXY=no
+    return 0
+  else
+    PROXY_HOSTLIST="$(echo "${BRDEXEC_SERVERLIST_CHOSEN}" | awk -F "/" '{print $NF}' | awk -F "." '{print $2}')"
+    if [ -z "${PROXY_HOSTLIST}" ]; then
+      BRDEXEC_PROXY=no
+      return 1
+    fi
+  fi
+
+  ### check if there are some proxy lists associated
+  for PROXY_HOSTLIST_DIR in "${BRDEXEC_DEFAULT_HOSTS_FOLDER}" "${BRDEXEC_DEFAULT_HOSTS_FOLDER}/${BRDEXEC_TEAM_CONFIG}"; do
+    for BRDEXEC_POSSIBLE_PROXY_ITEM in $(ls -1 "${PROXY_HOSTLIST_DIR}"); do
+      if [ "$(echo "${BRDEXEC_POSSIBLE_PROXY_ITEM}" | awk -F "." '{print $2}')" = "${PROXY_HOSTLIST}" ]; then
+        BRDEXEC_POSSIBLE_PROXIES+=" $(echo "${BRDEXEC_POSSIBLE_PROXY_ITEM}" | awk -F "." '{print $1}')"
+      fi
+    done
+  done
+}
+
+brdexec_proxy_get_proxy_info () {
+
+  BRDEXEC_PROXY_HOST="$(echo "${BRDEXEC_PROXY_ITEM}" | awk -F "-" '{print $1}')"
+  if [ "$(echo "${BRDEXEC_PROXY_HOST}" | grep -c "@")" -eq 1 ]; then
+    BRDEXEC_PROXY_HOST="$(echo "${BRDEXEC_PROXY_HOST}" | awk -F "@" '{print $2}')"
+  fi
+  if [ "$(echo "${BRDEXEC_PROXY_HOST}" | grep -c ":")" -eq 1 ]; then
+    BRDEXEC_PROXY_HOST="$(echo "${BRDEXEC_PROXY_HOST}" | awk -F ":" '{print $1}')"
+  fi
+  BRDEXEC_PROXY_PATH="$(echo "${BRDEXEC_PROXY_ITEM}" | awk -F "-" '{print $2}')"
+  BRDEXEC_PROXY_USER="$(echo "${BRDEXEC_PROXY_ITEM}" | awk -F "@" '{print $1}')"
+  if [ "${BRDEXEC_PROXY_USER}" = "" ]; then
+    BRDEXEC_PROXY_USER="${BRDEXEC_USER}"
+  fi
+  BRDEXEC_PROXY_PORT="$(echo "${BRDEXEC_PROXY_ITEM}" | awk -F "-" '{print $1}' | awk -F ":" '{print $2}')"
+  if [ "${BRDEXEC_PROXY_PORT}" = "" ]; then
+    BRDEXEC_PROXY_PORT=22
+  fi
+}
+
+brdexec_proxy_get_proxy_ip () {
+
+  ### checking hostname against broadexec hosts file
+  ### awk is used to find exact match of server name in 2nd field and tail prints last occurence
+  if BRDEXEC_TEMP_OUTPUT="$(grep -v "^#" ${BRDEXEC_HOSTS_FILE} | tr '[A-Z]' '[a-z]' | awk -v server="${BRDEXEC_PROXY_HOST}" '($2 == server) {print $1}' | tail -n 1)"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
+    BRDEXEC_PROXY_HOST_NAME="${BRDEXEC_PROXY_HOST}"
+    BRDEXEC_PROXY_HOST="${BRDEXEC_TEMP_OUTPUT}"
+  ### or against ~/.ssh/config
+  ### awk is used to find exact match of server name in 2nd field, where 1st field is "Host", then it reads 5 consecutive lines and ifline matches "Hostname" string in the 1st field, it prints 2nd field, where IP is expected; tail prints last occurence
+  elif BRDEXEC_TEMP_OUTPUT="$(grep -v "^#" ~/.ssh/config 2>/dev/null | tr '[A-Z]' '[a-z]' | awk -v server=${BRDEXEC_PROXY_HOST} '($1 == "host") && ($2 == server) {for(i=1; i<=5; i++) {getline; if($1=="host"){break;} else if($1=="hostname"){print $2; brea
+k;}}}' | tail -n 1)"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
+    BRDEXEC_PROXY_HOST_NAME="${BRDEXEC_PROXY_HOST}"
+    BRDEXEC_PROXY_HOST="${BRDEXEC_TEMP_OUTPUT}"
+  elif BRDEXEC_TEMP_OUTPUT="$(getent hosts "${BRDEXEC_PROXY_HOST}" | awk '{print $1}')"; [ ! -z "${BRDEXEC_TEMP_OUTPUT}" ]; then
+    BRDEXEC_PROXY_HOST_NAME="${BRDEXEC_PROXY_HOST}"
+    BRDEXEC_PROXY_HOST="${BRDEXEC_TEMP_OUTPUT}"
+  fi
+}
+
+brdexec_proxy__brdexec_before_ssh () {
+
+  ### populate proxy list
+  if [ -f ./etc/proxy_list ]; then
+    BRDEXEC_PROXY_LIST="$(cat ./etc/proxy_list | grep -v "^#" | grep -v "^$")"
+  else
+    BRDEXEC_PROXY=no
+    return 0
+  fi
+
+  ### check which proxies are required
+  BRDEXEC_PROXY_VALID_LIST="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
+  if [ "${BRDEXEC_PROXY}" = "yes" ]; then
+    for BRDEXEC_PROXY_ITEM in $(echo "${BRDEXEC_PROXY_LIST}"); do
+      brdexec_proxy_get_proxy_info
+      if [ "$(echo "${BRDEXEC_POSSIBLE_PROXIES}" | grep -wc "${BRDEXEC_PROXY_HOST}")" -eq 1 ]; then
+        echo "${BRDEXEC_PROXY_ITEM}" >> ${BRDEXEC_PROXY_VALID_LIST}
+      fi
+    done
+  fi
+
+  ### initiate proxy instances
+  for BRDEXEC_PROXY_ITEM in $(cat "${BRDEXEC_PROXY_VALID_LIST}"); do
+
+    brdexec_proxy_get_proxy_info
+    brdexec_proxy_get_proxy_ip
+
+    BRDEXEC_PROXY_ERROR_OUTPUT="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
+    BRDEXEC_PROXY_MAIN_OUTPUT="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
+    BRDEXEC_PROXY_TMP_STATS_FILE="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
+    BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_PROXY_ERROR_OUTPUT} ${BRDEXEC_PROXY_MAIN_OUTPUT} ${BRDEXEC_PROXY_TMP_STATS_FILE}"
+
+    #FIXME make better way of checking which hostlist is what
+    BRDEXEC_PARAMETERS_BACKUP_PROXY="${BRDEXEC_PARAMETERS_BACKUP}"
+    BRDEXEC_SELECTED_PARAMETERS_INFO_PROXY="${BRDEXEC_SELECTED_PARAMETERS_INFO}"
+    if [ "$(echo "${BRDEXEC_PARAMETERS_BACKUP}" | grep -c "/all.")" -eq 1 ]; then
+      BRDEXEC_PARAMETERS_BACKUP_PROXY="$(echo "${BRDEXEC_PARAMETERS_BACKUP}" | sed -e "s#/all.#/${BRDEXEC_PROXY_HOST_NAME}.#g")"
+    fi
+    if [ "$(echo "${BRDEXEC_SELECTED_PARAMETERS_INFO}" | grep -c "/all.")" -eq 1 ]; then
+      BRDEXEC_SELECTED_PARAMETERS_INFO_PROXY="$(echo "${BRDEXEC_SELECTED_PARAMETERS_INFO}" | sed -e "s#/all.#/${BRDEXEC_PROXY_HOST_NAME}.#g")"
+    fi
+
+    unset BRDEXEC_PROXY_LIST_TO_BE_COPIED
+    for PROXY_HOSTLIST_DIR in "${BRDEXEC_DEFAULT_HOSTS_FOLDER}" "${BRDEXEC_DEFAULT_HOSTS_FOLDER}/${BRDEXEC_TEAM_CONFIG}"; do
+      for BRDEXEC_POSSIBLE_PROXY_ITEM in $(ls -1 "${PROXY_HOSTLIST_DIR}"); do
+#echo "P $(echo "${BRDEXEC_POSSIBLE_PROXY_ITEM}" | awk -F "." '{print $1}') PH ${BRDEXEC_PROXY_HOST_NAME}"
+        if [ "$(echo "${BRDEXEC_POSSIBLE_PROXY_ITEM}" | awk -F "." '{print $1}')" = "${BRDEXEC_PROXY_HOST_NAME}" ]; then
+          BRDEXEC_PROXY_LIST_TO_BE_COPIED="${PROXY_HOSTLIST_DIR}/${BRDEXEC_POSSIBLE_PROXY_ITEM}"
+          break
+        fi
+      done
+      if [ ! -z "${BRDEXEC_PROXY_LIST_TO_BE_COPIED}" ]; then
+        break
+      fi
+    done
+
+    BRDEXEC_TARDIR="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
+
+#echo "    tar czf - \
+#      conf/broadexec.conf \
+#      ${BRDEXEC_PROXY_LIST_TO_BE_COPIED} \
+#      ${BRDEXEC_SCRIPT_TO_RUN} | \
+#      ssh \
+#          -p ${BRDEXEC_PROXY_PORT} \
+#          -o StrictHostKeyChecking=yes \
+#          -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} \
+#          -o \"ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}\" \
+#        ${BRDEXEC_PROXY_USER}@${BRDEXEC_PROXY_HOST} \" \
+#          mkdir -p $BRDEXEC_TARDIR; \
+#          echo 'Broadexec version:${BRDEXEC_VERSION}' \> ${BRDEXEC_TARDIR}/version_orig; \
+#          ${BRDEXEC_PROXY_PATH}/broadexec.sh --version \> ${BRDEXEC_TARDIR}/version_target; \
+#          diff ${BRDEXEC_TARDIR}/version_orig ${BRDEXEC_TARDIR}/version_target 2\>/dev/null \>/dev/null; \
+#          cat - > ${BRDEXEC_TARDIR}/broadexec_proxy.tar.gz; \
+#          tar xzf broadexec_proxy.tar.gz -C ${BRDEXEC_PROXY_PATH}/; \
+#          ${BRDEXEC_PROXY_PATH}/broadexec.sh \
+#            ${BRDEXEC_PARAMETERS_BACKUP_PROXY} \
+#            ${BRDEXEC_SELECTED_PARAMETERS_INFO_PROXY} \
+#            --external \
+#            --runid ${RUNID} \
+#            --batch \
+#            -qq; \
+#      \" 2>>${BRDEXEC_PROXY_ERROR_OUTPUT} >> ${BRDEXEC_PROXY_MAIN_OUTPUT} &"
+
+
+    tar czf - \
+      conf/broadexec.conf \
+      ${BRDEXEC_PROXY_LIST_TO_BE_COPIED} \
+      ${BRDEXEC_SCRIPT_TO_RUN} | \
+      ssh \
+          -p ${BRDEXEC_PROXY_PORT} \
+          -o StrictHostKeyChecking=yes \
+          -o BatchMode=yes${BRDEXEC_USER_SSH_KEY} \
+          -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" \
+        ${BRDEXEC_PROXY_USER}@${BRDEXEC_PROXY_HOST} " \
+          mkdir -p $BRDEXEC_TARDIR; \
+          echo 'Broadexec version: ${BRDEXEC_VERSION}' > ${BRDEXEC_TARDIR}/version_orig; \
+          ${BRDEXEC_PROXY_PATH}/broadexec.sh --version > ${BRDEXEC_TARDIR}/version_target; \
+          diff ${BRDEXEC_TARDIR}/version_orig ${BRDEXEC_TARDIR}/version_target 2>/dev/null >/dev/null; \
+          if [ \"\$?\" -ne 0 ]; then \
+            >&2 echo \"ERROR: Broadexec version on \$HOSTNAME does not match!\"; \
+            rm -rf ${BRDEXEC_TARDIR}; \
+            exit 15; \
+          fi; \
+          cat - > ${BRDEXEC_TARDIR}/broadexec_proxy.tar.gz; \
+          tar xzf ${BRDEXEC_TARDIR}/broadexec_proxy.tar.gz -C ${BRDEXEC_PROXY_PATH}/; \
+          ${BRDEXEC_PROXY_PATH}/broadexec.sh \
+            ${BRDEXEC_PARAMETERS_BACKUP_PROXY} \
+            ${BRDEXEC_SELECTED_PARAMETERS_INFO_PROXY} \
+            --runid ${RUNID} \
+            --batch; \
+      " 2>>${BRDEXEC_PROXY_ERROR_OUTPUT} >> ${BRDEXEC_PROXY_MAIN_OUTPUT} & 
+    BRDEXEC_PROXY_PID="${!}"
+    BRDEXEC_PROXY_PIDS+=" ${BRDEXEC_PROXY_PID}"
+    BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]="${BRDEXEC_PROXY_MAIN_OUTPUT}"
+    BRDEXEC_PROXY_ERROR_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]="${BRDEXEC_PROXY_ERROR_OUTPUT}"
+    BRDEXEC_PROXY_TMP_STATS_FILE_ARRAY[$BRDEXEC_PROXY_PID]="${BRDEXEC_PROXY_TMP_STATS_FILE}"
+    BRDEXEC_PROXY_HOSTNAME_ARRAY[$BRDEXEC_PROXY_PID]="${BRDEXEC_PROXY_HOST}"
+    BRDEXEC_PROXY_USER_ARRAY[$BRDEXEC_PROXY_PID]="${BRDEXEC_PROXY_USER}"
+    BRDEXEC_PROXY_PATH_ARRAY[$BRDEXEC_PROXY_PID]="${BRDEXEC_PROXY_PATH}"
+    BRDEXEC_PROXY_PORT_ARRAY[$BRDEXEC_PROXY_PID]="${BRDEXEC_PROXY_PORT}"
+  done
+}
+
+brdexec_proxy__brdexec_display_output_until_timeout () {
+
+    BRDEXEC_PROXY_RUN_FINISHED=0
+    BRDEXEC_PROXY_PID_TOTAL_COUNT="$(echo ${BRDEXEC_PROXY_PIDS} | wc -w)"
+
+    #FIXME break after some timeout...
+    while [ "${BRDEXEC_PROXY_RUN_FINISHED}" -ne "${BRDEXEC_PROXY_PID_TOTAL_COUNT}" ]; do
+      for BRDEXEC_PROXY_PID in ${BRDEXEC_PROXY_PIDS}; do
+        sleep 0.1 2>/dev/null || sleep 1
+        ps -p ${BRDEXEC_PROXY_PID} >/dev/null
+        if [ "$?" -ne 0 ]; then
+          ((BRDEXEC_PROXY_RUN_FINISHED++))
+        fi
+      done
+    done
+}
+
+brdexec_proxy__brdexec_display_main_output () {
+
+  for BRDEXEC_PROXY_PID in ${BRDEXEC_PROXY_PIDS}; do
+    cat ${BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]} >> \
+      ${BRDEXEC_REPORT_PATH}/broadexec_${BRDEXEC_REPORT_SCRIPT_NAME}_${BRDEXEC_RUNID}.report
+    cat ${BRDEXEC_PROXY_MAIN_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]}
+  done
+}
+
+brdexec_proxy__brdexec_generate_error_log () {
+
+  #FIXME somewhat duplicate code from core brdexec_generate_error_log function :/
+  if [ -f "${BRDEXEC_ERROR_BLACKLIST_FILE}" ]; then
+    if [ "$(cat "${BRDEXEC_ERROR_BLACKLIST_FILE}" | wc -l)" -ne 0 ]; then
+      while read BRDEXEC_ERROR_BLACKLIST_LINE; do
+        if [ "$(echo "${BRDEXEC_ERROR_BLACKLIST_LINE}" | grep -c '^#')" -eq 0 ]; then
+          for BRDEXEC_PROXY_PID in ${BRDEXEC_PROXY_PIDS}; do
+            if [ "$(cat ${BRDEXEC_PROXY_ERROR_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]} | wc -l)" -gt 1 ] && \
+               [ "$(grep -c "${BRDEXEC_ERROR_BLACKLIST_LINE}" ${BRDEXEC_PROXY_ERROR_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]})" -gt 0 ]; then
+              BRDEXEC_ERROR_BLACKLIST_TEMP="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
+              BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_ERROR_BLACKLIST_TEMP}"
+              grep -v "${BRDEXEC_ERROR_BLACKLIST_LINE}" ${BRDEXEC_PROXY_ERROR_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]} >> ${BRDEXEC_ERROR_BLACKLIST_TEMP} && mv ${BRDEXEC_ERROR_BLACKLIST_TEMP} ${BRDEXEC_PROXY_ERROR_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]}
+            fi
+          done
+        fi
+      done < ${BRDEXEC_ERROR_BLACKLIST_FILE}
+    fi
+  fi
+
+  for BRDEXEC_PROXY_PID in ${BRDEXEC_PROXY_PIDS}; do
+    cat ${BRDEXEC_PROXY_ERROR_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]} >> ${BRDEXEC_MAIN_ERROR_CURLOG}
+    cat ${BRDEXEC_PROXY_ERROR_OUTPUT_ARRAY[$BRDEXEC_PROXY_PID]} >> ${BRDEXEC_REPORT_ERROR_FILE}
+  done
+}

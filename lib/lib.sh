@@ -366,7 +366,7 @@ brdexec_ssh_pid () { verbose -s "brdexec_ssh_pid ${@}"
       ### use askpass script to log in with password
       SSH_ASKPASS_PASSWORD="${BRDEXEC_SCRIPT_PWD}"
       SSH_ASKPASS_SCRIPT="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-      BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${SSH_ASKPASS_SCRIPT}"
+      BRDEXEC_TEMP_FILES_LIST+=" ${SSH_ASKPASS_SCRIPT}"
       # $ (dollars) are not escaped in original script
       cat <<EOF >${SSH_ASKPASS_SCRIPT}
       if [ -n "\$SSH_ASKPASS_PASSWORD" ]; then
@@ -456,28 +456,28 @@ EOF
   fi
 }
 
-#15
-brdexec_wait_for_pids_to_finish () { verbose -s "brdexec_wait_for_pids_to_finish ${@}"
-
-  ### count timeouts from this moment
-  BRDEXEC_START_TIME=$(date +%s)
-
-  ### initialize report file in case this is normal run
-  if [ -z "${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY}" ]; then
-    brdexec_temp_files create_report
-  fi
-
-  ### wait for all the answers or until timeout and display output as it is coming
-  brdexec_display_output_until_timeout
-
-  ### checking what had timed out and sorting it out
-  brdexec_timeouted
-
-  ### cleanup main output files
-  for BRDEXEC_SSH_PID in ${BRDEXEC_SSH_PIDS}; do
-    brdexec_temp_files remove_main_output
-  done
-}
+##15
+#brdexec_wait_for_pids_to_finish () { verbose -s "brdexec_wait_for_pids_to_finish ${@}"
+#
+#  ### count timeouts from this moment
+#  BRDEXEC_START_TIME=$(date +%s)
+#
+#  ### initialize report file in case this is normal run
+#  if [ -z "${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY}" ]; then
+#    brdexec_temp_files create_report
+#  fi
+#
+#  ### wait for all the answers or until timeout and display output as it is coming
+#  brdexec_display_output_until_timeout
+#
+#  ### checking what had timed out and sorting it out
+#  brdexec_timeouted
+#
+#  ### cleanup main output files
+#  for BRDEXEC_SSH_PID in ${BRDEXEC_SSH_PIDS}; do
+#    brdexec_temp_files remove_main_output
+#  done
+#}
 
 #16
 script_specific () {
@@ -586,8 +586,8 @@ brdexec_hosts () {
       if [ ! -z "${BRDEXEC_HOSTSLIST_EXCLUDE}" ]; then
         BRDEXEC_HOSTSLIST_EXCLUDED_TEMP1="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
         BRDEXEC_HOSTSLIST_EXCLUDED_TEMP2="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-        BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_HOSTSLIST_EXCLUDED_TEMP1}"
-        BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_HOSTSLIST_EXCLUDED_TEMP2}"
+        BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_HOSTSLIST_EXCLUDED_TEMP1}"
+        BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_HOSTSLIST_EXCLUDED_TEMP2}"
         cat ${BRDEXEC_SERVERLIST_CHOSEN} > ${BRDEXEC_HOSTSLIST_EXCLUDED_TEMP1}
         BRDEXEC_HOSTSLIST_EXCLUDE="${BRDEXEC_HOSTSLIST_EXCLUDE//,/ }"
         for BRDEXEC_HOST_EXCLUDED in ${BRDEXEC_HOSTSLIST_EXCLUDE}; do
@@ -611,18 +611,21 @@ brdexec_hosts () {
 
       ### get list of custom hostsfiles
       #2233 FIXME
+      verbose 222 2
       BRDEXEC_LIST_OF_CUSTOM_HOSTSFILES="$(ls -1 ${BRDEXEC_DEFAULT_HOSTS_FOLDER} 2>/dev/null | grep -v ^hosts$ | grep -v ^${BRDEXEC_TEAM_CONFIG}$ | tr '\n' ' ')"
       BRDEXEC_LIST_OF_SERVERLISTS="${BRDEXEC_LIST_OF_TEAM_HOSTSFILES} ${BRDEXEC_LIST_OF_CUSTOM_HOSTSFILES}"
 
       ### check if there are some hostslists
+      verbose 223 2
       if [ "$(echo "${BRDEXEC_LIST_OF_SERVERLISTS}" | wc -l)" -lt 1 ]; then
         display_error "181" 1
       fi
 
       ### create temporary hostlist from -H option
       if [ "${BRDEXEC_SERVERLIST_CHOSEN}" = "" ] && [ ! -z "${BRDEXEC_HOSTS}" ] ; then
+        verbose 224 2
         BRDEXEC_SERVERLIST_CHOSEN="$(mktemp)"
-        BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_SERVERLIST_CHOSEN}"
+        BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_SERVERLIST_CHOSEN}"
         for BRDEXEC_INPUT_HOST in $(echo "${BRDEXEC_HOSTS}" | sed -e 's/,/\ /g'); do
           echo "${BRDEXEC_INPUT_HOST}" >> ${BRDEXEC_SERVERLIST_CHOSEN}
         done
@@ -663,7 +666,7 @@ brdexec_hosts () {
           fi
 
           BRDEXEC_SERVERLIST_CHOSEN="${BRDEXEC_HOSTLIST_CHOSEN_ITEM}"
-          BRDEXEC_SELECTED_PARAMETERS_INFO="${BRDEXEC_SELECTED_PARAMETERS_INFO} -h ${BRDEXEC_HOSTLIST_CHOSEN_ITEM}"
+          BRDEXEC_SELECTED_PARAMETERS_INFO="${BRDEXEC_SELECTED_PARAMETERS_INFO} -l ${BRDEXEC_HOSTLIST_CHOSEN_ITEM}"
 
           ### run selection of filter
           #FIXME temporarily disabled filter menu selection as it was quite buggy on more complicated hostlists and needs total rework...
@@ -685,8 +688,8 @@ brdexec_hosts () {
       if [ -f "${BRDEXEC_DEFAULT_HOSTS_FOLDER}/hosts" ]; then
         cat "${BRDEXEC_DEFAULT_HOSTS_FOLDER}/hosts" >> ${BRDEXEC_HOSTS_FILE}
       fi
-      if [ -f "${BRDEXEC_DEFAULT_HOSTS_FOLDER}/hosts" ]; then
-        cat ${BRDEXEC_DEFAULT_HOSTS_FOLDER}/hosts >> ${BRDEXEC_HOSTS_FILE}
+      if [ -f "${BRDEXEC_DEFAULT_HOSTS_FOLDER}/${BRDEXEC_TEAM_CONFIG}/hosts" ]; then
+        cat "${BRDEXEC_DEFAULT_HOSTS_FOLDER}/${BRDEXEC_TEAM_CONFIG}/hosts" >> ${BRDEXEC_HOSTS_FILE}
       fi
     ;;
   esac
@@ -833,7 +836,8 @@ brdexec_getopts_main () { verbose -s "brdexec_getopts_main ${@}"
             -* | "")
               BRDEXEC_EXTERNAL="yes"; verbose 2103 1 ;;
             *)
-              BRDEXEC_STATS_FILE="${1}"; shift ;;
+              BRDEXEC_STATS_FILE="${1}";
+              BRDEXEC_EXTERNAL_STOP_="stop"; shift ;;
           esac ;;
 
         --runid) shift
@@ -1040,9 +1044,11 @@ brdexec_variables_init () { verbose -s "brdexec_variables_init ${@}"
   ### here first invocation ends before creating any temporary files
   if [ ! -z "${BRDEXEC_EXTERNAL}" ]; then
     echo "${BRDEXEC_STATS_FILE}"
-    BRDEXEC_PARAMETERS_BACKUP="$(echo "${@}" | sed 's/--external//')"
-    ./broadexec.sh ${BRDEXEC_PARAMETERS_BACKUP} --external ${BRDEXEC_STATS_FILE} --runid ${RUNID} -qq &
-    exit
+    BRDEXEC_EXTERNAL_PARAMETERS_BACKUP="$(echo "${@}" | sed 's/--external//')"
+    if [ "${BRDEXEC_EXTERNAL_STOP}" != "stop" ]; then
+      ./broadexec.sh ${BRDEXEC_EXTERNAL_PARAMETERS_BACKUP} --external ${BRDEXEC_STATS_FILE} --runid ${RUNID} -qq &
+      exit
+    fi
   fi
 
   ### reset runid in case it is provided via option
@@ -1069,7 +1075,7 @@ brdexec_variables_init () { verbose -s "brdexec_variables_init ${@}"
 
   ### check for hosts file in default directory and in team directory
   BRDEXEC_HOSTS_FILE="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-  BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_HOSTS_FILE}"
+  BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_HOSTS_FILE}"
   brdexec_hosts check_and_generate_hosts_file
 
   ### skip hostsfile selection if hosts file is present via parameter
@@ -1104,6 +1110,7 @@ brdexec_variables_init () { verbose -s "brdexec_variables_init ${@}"
   ### setting defaut value for error blacklist
   if [ -z "${BRDEXEC_ERROR_BLACKLIST_FILE}" ]; then
     if [ ! -z "${BRDEXEC_TEAM_CONFIG}" ]; then
+      #BRDEXEC_ERROR_BLACKLIST_FILE="./conf/${BRDEXEC_TEAM_CONFIG}/broadexec_error_blacklist.conf"
       BRDEXEC_ERROR_BLACKLIST_FILE="./teamconfigs/${BRDEXEC_TEAM_CONFIG}/conf/broadexec_error_blacklist.conf"
     else
       BRDEXEC_ERROR_BLACKLIST_FILE="./conf/broadexec_error_blacklist.conf"
@@ -1171,10 +1178,10 @@ brdexec_temp_files () { verbose -s "brdexec_temp_files ${@}"
   ### once ssh session will be started
   if [ "${1}" = "create_exec" ]; then
     BRDEXEC_ERROR_LOGFILE_MESSAGE="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-    BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_ERROR_LOGFILE_MESSAGE}"
+    BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_ERROR_LOGFILE_MESSAGE}"
     echo "${BRDEXEC_SERVER_NAME}" > ${BRDEXEC_ERROR_LOGFILE_MESSAGE}
     BRDEXEC_MAIN_RUN_OUTPUT="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-    BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_MAIN_RUN_OUTPUT}"
+    BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_MAIN_RUN_OUTPUT}"
     echo "${BRDEXEC_SERVER_NAME}" > ${BRDEXEC_MAIN_RUN_OUTPUT}
 
   ### create report temp files with corresponding names
@@ -1186,8 +1193,8 @@ brdexec_temp_files () { verbose -s "brdexec_temp_files ${@}"
     else
       echo "ERROR while trying to get script name"
     fi
-    BRDEXEC_REPORT_FILE="${BRDEXEC_REPORT_PATH}/broadexec_${BRDEXEC_REPORT_SCRIPT_NAME}_${BRDEXEC_START_TIME}.report"
-    BRDEXEC_REPORT_ERROR_FILE="${BRDEXEC_REPORT_PATH}/broadexec_${BRDEXEC_REPORT_SCRIPT_NAME}_${BRDEXEC_START_TIME}.report_error"
+    BRDEXEC_REPORT_FILE="${BRDEXEC_REPORT_PATH}/broadexec_${BRDEXEC_REPORT_SCRIPT_NAME}_${BRDEXEC_RUNID}.report"
+    BRDEXEC_REPORT_ERROR_FILE="${BRDEXEC_REPORT_PATH}/broadexec_${BRDEXEC_REPORT_SCRIPT_NAME}_${BRDEXEC_RUNID}.report_error"
     ### in case -g parameter is used additional list report will be created
     if [ ! -z "${BRDEXEC_GREP_DISPLAY_ONLY_SERVERS}" ]; then
       BRDEXEC_REPORT_FILE_LIST="${BRDEXEC_REPORT_FILE}_list"
@@ -1226,6 +1233,7 @@ brdexec_temp_files () { verbose -s "brdexec_temp_files ${@}"
 brdexec_display_output_until_timeout () { verbose -s "brdexec_display_output_until_timeout ${@}"
 
   ### let's initialize death counter and count total number of running pids
+  #FIXME next line is now probably useless
   local BRDEXEC_DEATH_COUNTER="$(expr $(date +%s) - ${BRDEXEC_SCRIPT_RUN_TIMEOUT})"
   local BRDEXEC_SSH_PID_TOTAL_COUNT="$(echo ${BRDEXEC_SSH_PIDS}) | wc -w)"
 
@@ -1430,7 +1438,7 @@ brdexec_select_hosts_filter () { verbose -s "brdexec_select_hosts_filter ${@}"
 
       ### create temporary filter hostslist
       BRDEXEC_TEMP_HOSTS_LIST="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-      BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_TEMP_HOSTS_LIST}"
+      BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_TEMP_HOSTS_LIST}"
 
       ### check this run for more columns
       unset -v BRDEXEC_HOSTS_FILTER_ITEM_EXIST
@@ -1496,7 +1504,7 @@ brdexec_select_hosts_filter () { verbose -s "brdexec_select_hosts_filter ${@}"
         ### reset and save of temporary hostslist
         if [ ! -z "${BRDEXEC_SERVERLIST_FILTER}" ]; then
           BRDEXEC_ANOTHER_TEMP_HOSTS_LIST="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-          BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_ANOTHER_TEMP_HOSTS_LIST}"
+          BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_ANOTHER_TEMP_HOSTS_LIST}"
           cp ${BRDEXEC_TEMP_HOSTS_LIST} ${BRDEXEC_ANOTHER_TEMP_HOSTS_LIST}
           > ${BRDEXEC_TEMP_HOSTS_LIST}
 
@@ -1580,7 +1588,7 @@ brdexec_create_hosts_list_based_on_filter () { verbose -s "brdexec_create_hosts_
   ### create filter based on -f parameter
   if [ ! -z "${BRDEXEC_SERVERLIST_FILTER}" ]; then
     BRDEXEC_SERVERLIST_FILTERED="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-    BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_SERVERLIST_FILTERED}"
+    BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_SERVERLIST_FILTERED}"
 
     ### count how many -f parameters were entered
     BRDEXEC_SERVERLIST_FILTER_PHRASES_COUNT=$(echo "${BRDEXEC_SERVERLIST_FILTER}" | awk -F " " '{print NF}')
@@ -1634,7 +1642,7 @@ brdexec_create_temporary_hosts_list_based_on_filter () { verbose -s "brdexec_cre
 brdexec_make_temporary_script () {
 
   BRDEXEC_TMP_SCRIPT="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-  BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_TMP_SCRIPT}"
+  BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_TMP_SCRIPT}"
 
   if [ -f "${1}" ]; then
     ### load first line of script ahead
@@ -2018,7 +2026,7 @@ brdexec_generate_error_log () { verbose -s "brdexec_generate_error_log ${@}"
 
               ### if error line contains blacklisted phrase it will get deleted; because of mv there is no need to rm temp file
               BRDEXEC_ERROR_BLACKLIST_TEMP="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-              BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_ERROR_BLACKLIST_TEMP}"
+              BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_ERROR_BLACKLIST_TEMP}"
               grep -v "${BRDEXEC_ERROR_BLACKLIST_LINE}" ${BRDEXEC_ERROR_OUTPUT_ARRAY[$BRDEXEC_SSH_PID]} > ${BRDEXEC_ERROR_BLACKLIST_TEMP} && mv ${BRDEXEC_ERROR_BLACKLIST_TEMP} ${BRDEXEC_ERROR_OUTPUT_ARRAY[$BRDEXEC_SSH_PID]}
               fi
             fi
@@ -2166,7 +2174,7 @@ brdexec_repair_missing_known_hosts () {
       #    brdexec_display_output "  Adding ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} to ~/.ssh/known_hosts" 2
       #    touch ${BRDEXEC_KNOWN_HOSTS_MESSAGE}
       #    BRDEXEX_MISSING_KNOWN_HOSTS_TEMP="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-      #    BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP}"
+      #    BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEX_MISSING_KNOWN_HOSTS_TEMP}"
       #    BRDEXEX_MISSING_KNOWN_HOSTS_LINE_NUMBER="$(grep -n ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ~/.ssh/known_hosts | head -n 1 | awk -F ":" '{print $1}')"
 
       #    if [ ! -f "/tmp/${BRDEXEC_RUNID}_known_hosts_lock_file" ]; then
@@ -2552,7 +2560,7 @@ limit_file_size () {
 brdexec_update_stats () {
 
   ### do not run stats if stats file is not in use
-  if [ ! -f "${BRDEXEC_STATS_FILE}" ]; then
+  if [ "${BRDEXEC_EXTERNAL}" != "yes" ] && [ ! -f "${BRDEXEC_STATS_FILE}" ]; then
     return 0
   fi
 
@@ -2576,6 +2584,10 @@ brdexec_update_stats () {
   if [ ! -z "${BRDEXEC_STATS_STATUS}" ]; then
     BRDEXEC_STATS_LAST_LINE="$(tail -n 1 ${BRDEXEC_STATS_FILE})"
     echo -e "STATE ${BRDEXEC_STATS_STATUS}\n${BRDEXEC_STATS_LAST_LINE}" > ${BRDEXEC_STATS_FILE}
+    #if [ "${BRDEXEC_EXTERNAL}" = "yes" ]; then
+    #  >&3 echo -e "STATE ${BRDEXEC_STATS_STATUS}\n${BRDEXEC_STATS_LAST_LINE}"
+    #fi
+
 
   ### write progress
   elif [ ! -z "${BRDEXEC_STATS_PROGRESS}" ]; then
@@ -2585,6 +2597,10 @@ brdexec_update_stats () {
       BRDEXEC_STATS_TOTAL="$(echo ${BRDEXEC_SERVERLIST_LOOP} | wc -w)"
       echo "STATE RUNNING" > ${BRDEXEC_STATS_FILE}
       echo "PROGRESS 0 ${BRDEXEC_STATS_TOTAL} 0 0" >> ${BRDEXEC_STATS_FILE}
+      #if [ "${BRDEXEC_EXTERNAL}" = "yes" ]; then
+      #   >&3 echo "STATE RUNNING"
+      #   >&3 echo "PROGRESS 0 ${BRDEXEC_STATS_TOTAL} 0 0"
+      #fi
 
     ### calculate progress from current provided value and time
     elif [ "${BRDEXEC_STATS_PROGRESS}" -eq "${BRDEXEC_STATS_PROGRESS}" ]; then
@@ -2609,6 +2625,10 @@ brdexec_update_stats () {
       BRDEXEC_STATS_FIRST_LINE="$(head -n 1 ${BRDEXEC_STATS_FILE})"
       echo "${BRDEXEC_STATS_FIRST_LINE}" > ${BRDEXEC_STATS_FILE}
       echo "PROGRESS ${BRDEXEC_STATS_PROGRESS_TOTAL} ${BRDEXEC_STATS_TOTAL} ${BRDEXEC_STATS_PERCENTAGE} ${BRDEXEC_STATS_SECONDS}" >> ${BRDEXEC_STATS_FILE}
+      #if [ "${BRDEXEC_EXTERNAL}" = "yes" ]; then
+      #  >&3 echo "${BRDEXEC_STATS_FIRST_LINE}"
+      #  >&3 echo "PROGRESS ${BRDEXEC_STATS_PROGRESS_TOTAL} ${BRDEXEC_STATS_TOTAL} ${BRDEXEC_STATS_PERCENTAGE} ${BRDEXEC_STATS_SECONDS}"
+      #fi
     fi
   fi
 
@@ -2690,7 +2710,7 @@ brdexec_admin_functions () { verbose -s "brdexec_admin_functions ${@}"
             BRDEXEC_SERVER_COUNT="$(cat ${BRDEXEC_HOSTS_FILE} | wc -l)"
             BRDEXEC_ETCHOSTS_TMPFILE="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
             BRDEXEC_ETCHOSTS_TMPFILE2="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-            BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_ETCHOSTS_TMPFILE}"
+            BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_ETCHOSTS_TMPFILE}"
             grep -v "^#" ${BRDEXEC_HOSTS_FILE} > ${BRDEXEC_ETCHOSTS_TMPFILE}
             ### filter hosts file to use only selected hostlist
             echo "Generating hotst file according to selected hostlist. It may take a while, be patient..."
@@ -2775,7 +2795,7 @@ brdexec_admin_check_and_fix_ssh_keys () { verbose -s "brdexec_admin_check_and_fi
 
   ### use askpass script to log in with password
   SSH_ASKPASS_SCRIPT="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-  BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${SSH_ASKPASS_SCRIPT}"
+  BRDEXEC_TEMP_FILES_LIST+=" ${SSH_ASKPASS_SCRIPT}"
   # $ (dollars) are not escaped in original script
   cat <<EOF >${SSH_ASKPASS_SCRIPT}
   if [ -n "\$SSH_ASKPASS_PASSWORD" ]; then
@@ -2795,7 +2815,7 @@ EOF
   chmod 755 ${SSH_ASKPASS_SCRIPT}
 
   if [ "${1}" = "from_teamconfig" ] || [ "${1}" = "delete_particular" ]; then
-    if [ "$(ls -1 ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/ 2>/dev/null | grep ".pub$" | wc -l)" -eq 0 ]; then
+    if [ "$(ls -1 ./conf/${BRDEXEC_TEAM_CONFIG}/.ssh/ 2>/dev/null | grep ".pub$" | wc -l)" -eq 0 ]; then
       >&2 echo "No ssh keys found in teamconfig folder."
       exit 0
     fi
@@ -2841,9 +2861,9 @@ EOF
 
   if [ "${1}" = "delete_particular" ]; then
     unset PS3
-    select BRDEXEC_SSH_KEY_TO_BE_DELETED in $(ls -1 ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/ 2>/dev/null | grep ".pub$")
+    select BRDEXEC_SSH_KEY_TO_BE_DELETED in $(ls -1 ./conf/${BRDEXEC_TEAM_CONFIG}/.ssh/ 2>/dev/null | grep ".pub$")
     do
-      if [ "$(ls -1 ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/ 2>/dev/null | grep ".pub$" | wc -l)" -lt "${REPLY}" ] 2>/dev/null; then
+      if [ "$(ls -1 ./conf/${BRDEXEC_TEAM_CONFIG}/.ssh/ 2>/dev/null | grep ".pub$" | wc -l)" -lt "${REPLY}" ] 2>/dev/null; then
         display_error "420" 1
       fi
       if ! [ "${REPLY}" -eq "${REPLY}" ] 2>/dev/null; then
@@ -2852,7 +2872,7 @@ EOF
       if [ "${REPLY}" -lt 0 ]; then
         display_error "420" 1
       fi
-      brdexec_display_output "./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_SSH_KEY_TO_BE_DELETED} was selected\n" 255
+      brdexec_display_output "./conf/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_SSH_KEY_TO_BE_DELETED} was selected\n" 255
       break
     done
   fi
@@ -2897,15 +2917,15 @@ EOF
     ### adding ssh keys from teamfolder
     else
       if [ "${1}" = "from_teamconfig" ]; then
-        for BRDEXEC_TEAM_SSH_KEY in $(ls -1 ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/ 2>/dev/null| grep ".pub$")
+        for BRDEXEC_TEAM_SSH_KEY in $(ls -1 ./conf/${BRDEXEC_TEAM_CONFIG}/.ssh/ 2>/dev/null| grep ".pub$")
         do
           ### check if passwordless connection is working or not
           BRDEXEC_REMOTE_AUTHORIZED_KEYS="$(ssh -q -o StrictHostKeyChecking=yes -o BatchMode=yes -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_USER}@${BRDEXEC_SERVER} "cat ~/.ssh/authorized_keys")"
-          BRDEXEC_LOCAL_PUBLIC_KEY="$(cat ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_TEAM_SSH_KEY})"
+          BRDEXEC_LOCAL_PUBLIC_KEY="$(cat ./conf/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_TEAM_SSH_KEY})"
           ### if not try to add ssh key
           if [ "$(echo "${BRDEXEC_REMOTE_AUTHORIZED_KEYS}" | grep -c "${BRDEXEC_LOCAL_PUBLIC_KEY}")" -eq 0 ]; then
-            echo -e "===============================================\nAdding SSH key ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_TEAM_SSH_KEY} for ${BRDEXEC_SERVER}"
-            echo $BRDEXEC_ADMPWD | $SSH_ASKPASS_SCRIPT ssh -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o PasswordAuthentication=yes ${BRDEXEC_USER}@${BRDEXEC_SERVER} "echo $(cat ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_TEAM_SSH_KEY}) >> ~/.ssh/authorized_keys"
+            echo -e "===============================================\nAdding SSH key ./conf/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_TEAM_SSH_KEY} for ${BRDEXEC_SERVER}"
+            echo $BRDEXEC_ADMPWD | $SSH_ASKPASS_SCRIPT ssh -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o PasswordAuthentication=yes ${BRDEXEC_USER}@${BRDEXEC_SERVER} "echo $(cat ./conf/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_TEAM_SSH_KEY}) >> ~/.ssh/authorized_keys"
             if [ "$?" -ne 0 ]; then
               >&2 echo "There was problem adding ssh keys, check manually."
             else
@@ -2916,10 +2936,10 @@ EOF
 
       ### remove particular ssh key from hosts
       elif [ "${1}" = "delete_particular" ]; then
-        BRDEXEC_REMOTE_SSH_KEY_TO_DELETE_FOUND="$(ssh -q -o StrictHostKeyChecking=yes -o BatchMode=yes -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_USER}@${BRDEXEC_SERVER} "grep -c \"$(cat ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_SSH_KEY_TO_BE_DELETED})\" ~/.ssh/authorized_keys")"
+        BRDEXEC_REMOTE_SSH_KEY_TO_DELETE_FOUND="$(ssh -q -o StrictHostKeyChecking=yes -o BatchMode=yes -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" ${BRDEXEC_USER}@${BRDEXEC_SERVER} "grep -c \"$(cat ./conf/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_SSH_KEY_TO_BE_DELETED})\" ~/.ssh/authorized_keys")"
         if [ "${BRDEXEC_REMOTE_SSH_KEY_TO_DELETE_FOUND}" -gt 0 2>/dev/null ]; then
-          echo -e "===============================================\nDeleting SSH key ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_SSH_KEY_TO_BE_DELETED} from ${BRDEXEC_SERVER}"
-          echo $BRDEXEC_ADMPWD | $SSH_ASKPASS_SCRIPT ssh -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o PasswordAuthentication=yes ${BRDEXEC_USER}@${BRDEXEC_SERVER} "BRDEXEC_DEL_TMP_KEY=\"\$(mktemp /tmp/broadexec.XXXXXXXXXX)\"; grep -v \"$(cat ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_SSH_KEY_TO_BE_DELETED} | awk '{print $2}')\" ~/.ssh/authorized_keys >> \${BRDEXEC_DEL_TMP_KEY}; mv \${BRDEXEC_DEL_TMP_KEY} ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys "
+          echo -e "===============================================\nDeleting SSH key ./conf/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_SSH_KEY_TO_BE_DELETED} from ${BRDEXEC_SERVER}"
+          echo $BRDEXEC_ADMPWD | $SSH_ASKPASS_SCRIPT ssh -o "ConnectTimeout=${BRDEXEC_SSH_CONNECTION_TIMEOUT}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o PasswordAuthentication=yes ${BRDEXEC_USER}@${BRDEXEC_SERVER} "BRDEXEC_DEL_TMP_KEY=\"\$(mktemp /tmp/broadexec.XXXXXXXXXX)\"; grep -v \"$(cat ./conf/${BRDEXEC_TEAM_CONFIG}/.ssh/${BRDEXEC_SSH_KEY_TO_BE_DELETED} | awk '{print $2}')\" ~/.ssh/authorized_keys >> \${BRDEXEC_DEL_TMP_KEY}; mv \${BRDEXEC_DEL_TMP_KEY} ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys "
           if [ "$?" -ne 0 ]; then
             >&2 echo "There was problem deleting ssh keys, check manually."
           else
@@ -2969,7 +2989,7 @@ brdexec_admin_check_and_fix_password_expiration () { verbose -s "brdexec_admin_c
 
   ### use askpass script to log in with password
   SSH_ASKPASS_SCRIPT="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-  BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${SSH_ASKPASS_SCRIPT}"
+  BRDEXEC_TEMP_FILES_LIST+=" ${SSH_ASKPASS_SCRIPT}"
   # $ (dollars) are not escaped in original script
   cat <<EOF >${SSH_ASKPASS_SCRIPT}
   if [ -n "\$SSH_ASKPASS_PASSWORD" ]; then
@@ -3028,7 +3048,7 @@ brdexec_admin_check_connectivity_and_sudo_functionality () { verbose -s "brdexec
 
   BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY="yes"
   BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY_SCRIPT="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
-  BRDEXEC_TEMP_FILES_LIST="${BRDEXEC_TEMP_FILES_LIST} ${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY_SCRIPT}"
+  BRDEXEC_TEMP_FILES_LIST+=" ${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY_SCRIPT}"
   echo '#!/bin/bash' >> ${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY_SCRIPT}
   echo 'sudo su - -c "uname -n"' >> ${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY_SCRIPT}
   BRDEXEC_SCRIPT_TO_RUN="${BRDEXEC_EXPECT_ADMIN_FUNCTION_CHECK_CONNECTIVITY_SCRIPT}"
@@ -3104,21 +3124,21 @@ brdexec_check_updates () { verbose -s "brdexec_check_updates ${@}"
   ### check and fix links
   #if [ ! -z "${BRDEXEC_TEAM_CONFIG}" ] || [ "${BRDEXEC_INSTALLED_NOW}" = "yes" ]; then
   #  ### check if default link is correct
-  #  if [ "$(ls -la ./default 2>/dev/null | awk -F " -> " '{print $2}')" != "./teamconfigs/${BRDEXEC_TEAM_CONFIG}" ]; then
+  #  if [ "$(ls -la ./default 2>/dev/null | awk -F " -> " '{print $2}')" != "./conf/${BRDEXEC_TEAM_CONFIG}" ]; then
   #    if [ "${BRDEXEC_INSTALLED_NOW}" = "yes" ]; then
-  #      brdexec_display_output "Fixing default link to teamconfigs/${BRDEXEC_TEAM_CONFIG}" 1
+  #      brdexec_display_output "Fixing default link to conf/${BRDEXEC_TEAM_CONFIG}" 1
   #    fi
   #    if [ -h ./default ]; then
   #      unlink ./default 2>/dev/null
   #    fi
-  #    ln -s ./teamconfigs/${BRDEXEC_TEAM_CONFIG} ./default 2>/dev/null
+  #    ln -s ./conf/${BRDEXEC_TEAM_CONFIG} ./default 2>/dev/null
   #  fi
   #  for BRDEXEC_TEAM_CONFIG_SUBFOLDER in conf hosts scripts
   #  do
   #    if [ -d "${BRDEXEC_TEAM_CONFIG_SUBFOLDER}" ]; then
   #      if [ ! -h "${BRDEXEC_TEAM_CONFIG_SUBFOLDER}/${BRDEXEC_TEAM_CONFIG}" ]; then
-  #        echo "Creating link ${BRDEXEC_TEAM_CONFIG_SUBFOLDER}/${BRDEXEC_TEAM_CONFIG} to teamconfigs/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER}"
-  #        ln -s ../teamconfigs/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER} ${BRDEXEC_TEAM_CONFIG_SUBFOLDER}/${BRDEXEC_TEAM_CONFIG}
+  #        echo "Creating link ${BRDEXEC_TEAM_CONFIG_SUBFOLDER}/${BRDEXEC_TEAM_CONFIG} to conf/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER}"
+  #        ln -s ../conf/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER} ${BRDEXEC_TEAM_CONFIG_SUBFOLDER}/${BRDEXEC_TEAM_CONFIG}
   #      fi
   #    fi
   #  done
@@ -3165,8 +3185,8 @@ brdexec_check_updates () { verbose -s "brdexec_check_updates ${@}"
   ### disabled, but left for possible future use
   ##############
   ### write username of linux admin user into config in case team folder is not available
-#  if [ -z "${BRDEXEC_TEAM_CONFIG}" ] || [ ! -f "./teamconfigs/${BRDEXEC_TEAM_CONFIG}/conf/broadexec.conf" ]; then
-#  #if [ "$(grep -c "^BRDEXEC_USER" ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/conf/broadexec.conf)" -eq 0 ]; then
+#  if [ -z "${BRDEXEC_TEAM_CONFIG}" ] || [ ! -f "./conf/${BRDEXEC_TEAM_CONFIG}/conf/broadexec.conf" ]; then
+#  #if [ "$(grep -c "^BRDEXEC_USER" ./conf/${BRDEXEC_TEAM_CONFIG}/conf/broadexec.conf)" -eq 0 ]; then
 #    if [ -f "conf/broadexec.conf" ]; then
 #      if [ "$(grep -c "^BRDEXEC_USER" conf/broadexec.conf)" -eq 0 ]; then
 #        echo -e "\nEnter user name of admin user present on all hosts with admin rights:"
@@ -3200,10 +3220,10 @@ brdexec_admin_ask_password () {
   else
     display_error "413" 1
   fi
-  if [ -f "./teamconfigs/${BRDEXEC_TEAM_CONFIG}/etc/shadow" ]; then
+  if [ -f "./conf/${BRDEXEC_TEAM_CONFIG}/etc/shadow" ]; then
     ### check shadow file hash and signature
 
-    BRDEXEC_ADMIN_PASSWORD_STORE="$(grep "^${BRDEXEC_ADMIN_USERNAME}" ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/etc/shadow | head -n 1 | awk -F ":" '{print $2}')"
+    BRDEXEC_ADMIN_PASSWORD_STORE="$(grep "^${BRDEXEC_ADMIN_USERNAME}" ./conf/${BRDEXEC_TEAM_CONFIG}/etc/shadow | head -n 1 | awk -F ":" '{print $2}')"
   else
     display_error "410" 1
   fi
@@ -3242,7 +3262,7 @@ brdexec_create_config_file () {
   ### get list of team folders
   if [ "$(ls -1 teamconfigs 2>/dev/null | wc -l)" -gt 0 ]; then
     echo -e "\nSelect your team group"
-    select BRDEXEC_TEAM_CONFIG in $(ls -1 teamconfigs | grep -v brd-teams)
+    select BRDEXEC_TEAM_CONFIG in $(ls -1 teamconfigs)
     do
       if [ "$(ls -1 teamconfigs 2>/dev/null | wc -w)" -lt "${REPLY}" ] 2>/dev/null; then
         display_error "471" 1
@@ -3277,8 +3297,8 @@ brdexec_create_config_file () {
       fi
       cd ..
     fi
-    echo "Creating link ${BRDEXEC_TEAM_CONFIG_SUBFOLDER}/${BRDEXEC_TEAM_CONFIG} to teamconfigs/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER}"
-    ln -s ../teamconfigs/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER} ${BRDEXEC_TEAM_CONFIG_SUBFOLDER}/${BRDEXEC_TEAM_CONFIG}
+    echo "Creating link ${BRDEXEC_TEAM_CONFIG_SUBFOLDER}/${BRDEXEC_TEAM_CONFIG} to conf/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER}"
+    ln -s teamconfigs/${BRDEXEC_TEAM_CONFIG}/${BRDEXEC_TEAM_CONFIG_SUBFOLDER} ${BRDEXEC_TEAM_CONFIG_SUBFOLDER}/${BRDEXEC_TEAM_CONFIG}
   done
   echo "Creating default link"
   if [ ! -h ./default 2>/dev/null ]; then
@@ -3286,8 +3306,7 @@ brdexec_create_config_file () {
   fi
 
   ### write username of admin user into config in case team folder is not available
-  if [ -z "${BRDEXEC_TEAM_CONFIG}" ] || [ ! -f "./teamconfigs/${BRDEXEC_TEAM_CONFIG}/conf/broadexec.conf" ]; then
-  #if [ "$(grep -c "^BRDEXEC_USER" ./teamconfigs/${BRDEXEC_TEAM_CONFIG}/conf/broadexec.conf)" -eq 0 ]; then
+  if [ -z "${BRDEXEC_TEAM_CONFIG}" ] || [ ! -f "./conf/${BRDEXEC_TEAM_CONFIG}/broadexec.conf" ]; then
     if [ -f "conf/broadexec.conf" ]; then
       if [ "$(grep -c "^BRDEXEC_USER" conf/broadexec.conf)" -eq 0 ]; then
         echo -e "\nEnter user name of admin user present on all hosts with admin rights:"
