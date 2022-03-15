@@ -257,6 +257,7 @@ if [ "${BRDEXEC_PROXY}" = no ]; then
   fi
 fi
 
+brdexec_write_access_log
 
 verbose 110 1
 for BRDEXEC_SERVER in ${BRDEXEC_SERVERLIST_LOOP}; do

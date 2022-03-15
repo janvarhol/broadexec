@@ -34,7 +34,7 @@ brdexec_verify_script_signature__brdexec_before_script_manipulation () {
       display_error "113" 1
     fi
     limit_file_size -m 1 etc/hush
-    BRDEXEC_SCRIPT_SIGNATURE_ID="$(gpg --verify "${BRDEXEC_SCRIPT_TO_RUN}.asc" "${BRDEXEC_SCRIPT_TO_RUN}" 2>&1 | grep -iv signature | awk '{print $NF}')"
+    BRDEXEC_SCRIPT_SIGNATURE_ID="$(gpg --list-packets "${BRDEXEC_SCRIPT_TO_RUN}.asc" 2>/dev/null | grep -w keyid | awk '{print $NF}')"
     if [ ! -z "${BRDEXEC_SCRIPT_SIGNATURE_ID}" ]; then
       if [ "$(grep "^gpg " etc/hush | grep -c "${BRDEXEC_SCRIPT_SIGNATURE_ID}")" -eq 0 ]; then
         display_error "114" 1

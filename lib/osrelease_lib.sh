@@ -42,6 +42,15 @@ osrelease_get_os_version () {
     BRDEXEC_OS_RELEASE=manjaro
     BRDEXEC_OS_MAJOR_VERSION="$(cat /etc/lsb-release | grep DISTRIB_RELEASE | awk -F "=" '{print $2}' | awk -F "." '{print $1}')"
     BRDEXEC_OS_MINOR_VERSION="$(cat /etc/lsb-release | grep DISTRIB_RELEASE | awk -F "=" '{print $2}' | awk -F "." '{print $2}')"
+  elif [ -f /etc/os-release ]; then
+    BRDEXEC_OS_RELEASE="$(grep ^ID= /etc/os-release | awk -F "\"" '{print $2}')"
+    if [ "${BRDEXEC_OS_RELEASE}" = "sles" ]; then
+      BRDEXEC_OS_MAJOR_VERSION="$(grep ^VERSION_ID /etc/os-release | awk -F "\"" '{print $2}' | awk -F "." '{print $1}')"
+      BRDEXEC_OS_MINOR_VERSION="$(grep ^VERSION_ID /etc/os-release | awk -F "\"" '{print $2}' | awk -F "." '{print $2}')"
+    else
+      echo "BRD_UNSUPPORTED Unable to get OS version."
+      exit 1
+    fi
   else
     echo "BRD_UNSUPPORTED Unable to get OS version."
     exit 1
