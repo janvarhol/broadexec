@@ -613,7 +613,7 @@ brdexec_hosts () {
 
       ### get list of custom hostsfiles
       #2233 FIXME
-      BRDEXEC_LIST_OF_CUSTOM_HOSTSFILES="$(ls -1 ${BRDEXEC_DEFAULT_HOSTS_FOLDER} 2>/dev/null | grep -v ^hosts$ | grep -v ^${BRDEXEC_TEAM_CONFIG}$ | tr '\n' ' ')"
+      BRDEXEC_LIST_OF_CUSTOM_HOSTSFILES="$(ls -1 ${BRDEXEC_DEFAULT_HOSTS_FOLDER} 2>/dev/null | grep -v ^hosts$ | grep -v "^${BRDEXEC_TEAM_CONFIG}$" | tr '\n' ' ')"
       BRDEXEC_LIST_OF_SERVERLISTS="${BRDEXEC_LIST_OF_TEAM_HOSTSFILES} ${BRDEXEC_LIST_OF_CUSTOM_HOSTSFILES}"
 
       ### check if there are some hostslists
@@ -651,7 +651,8 @@ brdexec_hosts () {
           done
           ### check and include default hostfile in case it is linked differently or in different folder
           if [ -f "${BRDEXEC_DEFAULT_HOSTS_FILE_PATH}" ]; then
-            if [ "$(echo "${BRDEXEC_LIST_OF_FULL_HOSTSFILES}" | grep -c "${BRDEXEC_DEFAULT_HOSTS_FILE_PATH}")" -eq 0 ]; then
+	    #FIXME make following list multiline for "better grepping with awk"
+            if [ "$(echo "${BRDEXEC_LIST_OF_FULL_HOSTSFILES}" | grep -wc "${BRDEXEC_DEFAULT_HOSTS_FILE_PATH}")" -eq 0 ]; then
               BRDEXEC_LIST_OF_FULL_HOSTSFILES="${BRDEXEC_LIST_OF_FULL_HOSTSFILES} ${BRDEXEC_DEFAULT_HOSTS_FILE_PATH}"
             fi
           fi
@@ -1430,7 +1431,7 @@ brdexec_select_hosts_filter () { verbose -s "brdexec_select_hosts_filter ${@}"
 
     ### check if there is second or more columns in selected hosts file on at leas one line
     BRDEXEC_HOSTS_FILTER_COLUMN_COUNT=1; BRDEXEC_COLUMN_EXISTS="yes"
-    BRDEXEC_SERVERLIST_LOOP="$(cat ${BRDEXEC_SERVERLIST_CHOSEN} | grep -v ^# | sort | uniq | awk '{print $1}')"
+    BRDEXEC_SERVERLIST_LOOP="$(cat ${BRDEXEC_SERVERLIST_CHOSEN} | grep -v "^#" | sort | uniq | awk '{print $1}')"
 
     ### repeat while there are selectable fields in hostsfile
     while [ "${BRDEXEC_COLUMN_EXISTS}" = "yes" ] ; do
@@ -1473,6 +1474,7 @@ brdexec_select_hosts_filter () { verbose -s "brdexec_select_hosts_filter ${@}"
               ### increment field number for checks starting with 2
               ((BRDEXEC_SERVERLIST_FILTER_COLUMN+=1))
               ### check and disregard this host from selection in case it does not match filter for this level
+	      #FIXME does it make sense to just display outut with awk?
               if [ "$(cat ${BRDEXEC_SERVERLIST_CHOSEN} | grep -i ${BRDEXEC_SERVER} | head -n 1 | awk -v col="${BRDEXEC_SERVERLIST_FILTER_COLUMN}" '{print $col}')" != "${BRDEXEC_SERVERLIST_FILTER_ITEM}" ]; then
                 BRDEXEC_SERVER_FILTER_OK="no"
               fi
@@ -1480,7 +1482,7 @@ brdexec_select_hosts_filter () { verbose -s "brdexec_select_hosts_filter ${@}"
 
             ### add whole hostsfile line with filters to temporary hostslist for further filter selection
             if [ "${BRDEXEC_SERVERLIST_FILTER_COLUMN}" -gt "${BRDEXEC_SERVERLIST_FILTER_COUNT}" ] && [ "${BRDEXEC_SERVER_FILTER_OK}" = "yes" ]; then
-              echo "$(grep "${BRDEXEC_SERVER}" ${BRDEXEC_SERVERLIST_CHOSEN} | uniq | head -n 1)" >> ${BRDEXEC_TEMP_HOSTS_LIST}
+              echo "$(grep "^${BRDEXEC_SERVER} " ${BRDEXEC_SERVERLIST_CHOSEN} | uniq | head -n 1)" >> ${BRDEXEC_TEMP_HOSTS_LIST}
             fi
           done
 
@@ -1494,8 +1496,10 @@ brdexec_select_hosts_filter () { verbose -s "brdexec_select_hosts_filter ${@}"
         BRDEXEC_HOSTS_FILTER_LIST="ALL"
         while read BRDEXEC_SERVERLIST_CHOSEN_LINE; do
           for BRDEXEC_SERVER in $( awk '{print $1}' ${BRDEXEC_TEMP_HOSTS_LIST}); do
-            if [ "$(echo "${BRDEXEC_SERVERLIST_CHOSEN_LINE}" | grep "^${BRDEXEC_SERVER}" | awk -v col="${BRDEXEC_HOSTS_FILTER_COLUMN_COUNT}" '{print $col}')" != "" ]; then
-              BRDEXEC_HOSTS_FILTER_LIST="${BRDEXEC_HOSTS_FILTER_LIST} $(echo "${BRDEXEC_SERVERLIST_CHOSEN_LINE}" | grep "^${BRDEXEC_SERVER}" | awk -v col="${BRDEXEC_HOSTS_FILTER_COLUMN_COUNT}" '{print $col}')"
+	    #FIXME awk not doing anything again?
+            if [ "$(echo "${BRDEXEC_SERVERLIST_CHOSEN_LINE}" | grep "^${BRDEXEC_SERVER} " | awk -v col="${BRDEXEC_HOSTS_FILTER_COLUMN_COUNT}" '{print $col}')" != "" ]; then
+	      #FIXME :(
+              BRDEXEC_HOSTS_FILTER_LIST="${BRDEXEC_HOSTS_FILTER_LIST} $(echo "${BRDEXEC_SERVERLIST_CHOSEN_LINE}" | grep "^${BRDEXEC_SERVER} " | awk -v col="${BRDEXEC_HOSTS_FILTER_COLUMN_COUNT}" '{print $col}')"
             fi
           done
         done < ${BRDEXEC_SERVERLIST_CHOSEN}
@@ -1582,7 +1586,7 @@ brdexec_select_hosts_filter () { verbose -s "brdexec_select_hosts_filter ${@}"
 brdexec_create_hosts_list_based_on_filter () { verbose -s "brdexec_create_hosts_list_based_on_filter ${@}"
 
   ### making sure serverist is unique
-  BRDEXEC_SERVERLIST_LOOP="$(cat ${BRDEXEC_SERVERLIST_CHOSEN} | grep -v ^# | sort | uniq | awk '{print $1}')"
+  BRDEXEC_SERVERLIST_LOOP="$(cat ${BRDEXEC_SERVERLIST_CHOSEN} | grep -v "^#" | sort | uniq | awk '{print $1}')"
 
   ### create filter based on -f parameter
   if [ ! -z "${BRDEXEC_SERVERLIST_FILTER}" ]; then
@@ -1613,7 +1617,8 @@ brdexec_create_temporary_hosts_list_based_on_filter () { verbose -s "brdexec_cre
     ### loop one filter word for one column
     for BRDEXEC_SERVERLIST_FILTER_ITEM in $(echo "${BRDEXEC_SERVERLIST_FILTER_PHRASE}" | sed -e 's/\./\ /g'); do
       ((BRDEXEC_SERVERLIST_FILTER_COLUMN+=1))
-      if [ "$(cat ${BRDEXEC_SERVERLIST_CHOSEN} | grep -i ${BRDEXEC_SERVER} | head -n 1 | awk -v col="${BRDEXEC_SERVERLIST_FILTER_COLUMN}" '{print $col}')" != "${BRDEXEC_SERVERLIST_FILTER_ITEM}" ]; then
+      #FIXME awk
+      if [ "$(cat ${BRDEXEC_SERVERLIST_CHOSEN} | grep -i "^${BRDEXEC_SERVER}$" | head -n 1 | awk -v col="${BRDEXEC_SERVERLIST_FILTER_COLUMN}" '{print $col}')" != "${BRDEXEC_SERVERLIST_FILTER_ITEM}" ]; then
         BRDEXEC_SERVER_FILTER_OK="no"
       fi
     done
@@ -1660,7 +1665,7 @@ brdexec_make_temporary_script () {
       tail -n +2 ${1} >> ${BRDEXEC_TMP_SCRIPT}
     fi
     ### check OS check activation
-    if [ "$(grep -v ^# ${BRDEXEC_TMP_SCRIPT} | grep -v 'osrelease_check () {' |  grep -c osrelease_check)" -eq 0 ] && [ "$(grep -v ^# ${BRDEXEC_TMP_SCRIPT} | grep -c ^BRDEXEC_SUPPORTED_)" -gt 0 ]; then
+    if [ "$(grep -v "^#" ${BRDEXEC_TMP_SCRIPT} | grep -v 'osrelease_check () {' |  grep -wc osrelease_check)" -eq 0 ] && [ "$(grep -v "^#" ${BRDEXEC_TMP_SCRIPT} | grep -c ^BRDEXEC_SUPPORTED_)" -gt 0 ]; then
       display_error "2121" 1
     fi
 
@@ -2016,7 +2021,7 @@ brdexec_generate_error_log () { verbose -s "brdexec_generate_error_log ${@}"
       while read BRDEXEC_ERROR_BLACKLIST_LINE; do
 
         ### discard commented out lines
-        if [ "$(echo "${BRDEXEC_ERROR_BLACKLIST_LINE}" | grep -c '^#')" -eq 0 ]; then
+        if [ "$(echo "${BRDEXEC_ERROR_BLACKLIST_LINE}" | grep -c "^#")" -eq 0 ]; then
           for BRDEXEC_SSH_PID in ${BRDEXEC_SSH_PIDS}; do
 
             ### We don't want to do filtering on runs without errors, saves time you know
@@ -2698,7 +2703,7 @@ brdexec_admin_functions () { verbose -s "brdexec_admin_functions ${@}"
       "Add hostnames and info from ${BRDEXEC_DEFAULT_HOSTS_FOLDER}/hosts to ~/.ssh/config - not included in check and fix all")
 
         if [ -s "${BRDEXEC_HOSTS_FILE}" ]; then
-          if [ "$(grep -v ^# ${BRDEXEC_HOSTS_FILE} | grep -v "^$" | wc -l)" -gt 0 ]; then
+          if [ "$(grep -v "^#" ${BRDEXEC_HOSTS_FILE} | grep -v "^$" | wc -l)" -gt 0 ]; then
             BRDEXEC_SERVER_COUNTER=0
             BRDEXEC_SERVER_COUNT="$(cat ${BRDEXEC_HOSTS_FILE} | wc -l)"
             BRDEXEC_ETCHOSTS_TMPFILE="$(mktemp /tmp/broadexec.XXXXXXXXXX)"
@@ -2881,8 +2886,8 @@ EOF
 #    fi
     ### check hostname against IP adress in default broadexec hosts file
     if [ -f "${BRDEXEC_HOSTS_FILE}" ]; then
-      if [ "$(grep -ic "${BRDEXEC_SERVER}" ${BRDEXEC_HOSTS_FILE})" -gt 0 ]; then
-        BRDEXEC_SERVER="$(grep -i "${BRDEXEC_SERVER}" ${BRDEXEC_HOSTS_FILE} | head -n 1 | awk '{print $1}')"
+      if [ "$(grep -icw "^${BRDEXEC_SERVER}$" ${BRDEXEC_HOSTS_FILE})" -gt 0 ]; then
+        BRDEXEC_SERVER="$(grep -iw "^${BRDEXEC_SERVER}$" ${BRDEXEC_HOSTS_FILE} | head -n 1 | awk '{print $1}')"
       fi
     fi
     ### check if passwordless connection is working or not
@@ -3008,8 +3013,8 @@ EOF
     ((BRDEXEC_SERVER_PROCESSED+=1))
     ### check hostname against IP adress in default broadexec hosts file
     if [ -f "${BRDEXEC_HOSTS_FILE}" ]; then
-      if [ "$(grep -ic "${BRDEXEC_SERVER}" ${BRDEXEC_HOSTS_FILE})" -gt 0 ]; then
-        BRDEXEC_SERVER="$(grep -i "${BRDEXEC_SERVER}" ${BRDEXEC_HOSTS_FILE} | head -n 1 | awk '{print $1}')"
+      if [ "$(grep -icw "^${BRDEXEC_SERVER}$" ${BRDEXEC_HOSTS_FILE})" -gt 0 ]; then
+        BRDEXEC_SERVER="$(grep -iw "^${BRDEXEC_SERVER}$" ${BRDEXEC_HOSTS_FILE} | head -n 1 | awk '{print $1}')"
       fi
     fi
     echo -ne "Checking server ${BRDEXEC_SERVER} (${BRDEXEC_SERVER_PROCESSED} of ${BRDEXEC_NUMBER_OF_SERVERS}) "
@@ -3238,7 +3243,7 @@ brdexec_create_config_file () {
     mkdir "${BRDEXEC_DEFAULT_HOSTS_FOLDER}" || display_error "475" 1
   fi
   echo "Getting files from team group repository"
-  if [ "$(grep -c "^BRDEXEC_SSH_PORT" conf/broadexec.conf 2>/dev/null)" -lt 1 ] 2>/dev/null || [ ! -f broadexec.conf ]; then
+  if [ "$(grep -wc "^BRDEXEC_SSH_PORT" conf/broadexec.conf 2>/dev/null)" -lt 1 ] 2>/dev/null || [ ! -f broadexec.conf ]; then
     echo -e "\nEnter SSH tunnel port to use to get the files:"
     echo -n "# [2222] "
     read BRDEXEC_SSH_PORT
