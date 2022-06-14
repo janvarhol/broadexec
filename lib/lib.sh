@@ -2160,12 +2160,12 @@ brdexec_repair_missing_known_hosts () {
     if [ "${1}" = "shout" ]; then
       brdexec_display_output "Executing keyscan on host ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" 1
     fi
-    if [ "$(ssh-keyscan -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEC_SSH_PORT_CONNECTION} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER},${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} 2>/dev/null | wc -l)" -ne 0 ]; then
+    if [ "$(ssh-keyscan -t rsa,ecdsa -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEC_SSH_PORT_CONNECTION} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER},${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} 2>/dev/null | wc -l)" -ne 0 ]; then
 
       ### adding keys to knownhosts
       brdexec_display_output "  Adding ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER},${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} to ~/.ssh/known_hosts" 2
       touch ${BRDEXEC_KNOWN_HOSTS_MESSAGE}
-      ssh-keyscan -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEC_SSH_PORT_CONNECTION} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER},${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} 2>/dev/null >> ~/.ssh/known_hosts
+      ssh-keyscan -t rsa,ecdsa -T ${BRDEXEC_SSH_CONNECTION_TIMEOUT} ${BRDEXEC_SSH_PORT_CONNECTION} ${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER},${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME} 2>/dev/null >> ~/.ssh/known_hosts
 
       #### add also hostname with IP address
       #if [ ! -z "${BRDEXEX_MISSING_KNOWN_HOSTS_SERVER_NAME}" ]; then
